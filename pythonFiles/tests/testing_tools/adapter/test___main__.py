@@ -1,6 +1,6 @@
 import unittest
 
-from adapter.__main__ import parse_args, main
+from testing_tools.adapter.__main__ import parse_args, main
 
 
 class ParseDiscoverTests(unittest.TestCase):
