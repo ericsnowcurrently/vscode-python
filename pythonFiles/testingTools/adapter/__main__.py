@@ -1,0 +1,70 @@
+from __future__ import absolute_import
+
+import argparse
+import sys
+
+#from . import pytest
+unittest = None
+pytest = None
+nose = None
+
+
+TOOLS = {
+        'unittest': unittest,
+        'pytest': pytest,
+        'nose': nose,
+        }
+
+
+def parse_args(
+        argv=sys.argv[1:],
+        prog=sys.argv[0],
+        ):
+    """
+    Return the subcommand to run, along with its args.
+
+    This defines the standard CLI for the different testing frameworks.
+    """
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument('--tool', choices=sorted(TOOLS), required=True)
+
+    parser = argparse.ArgumentParser(
+            description='Run Python testing operations.',
+            prog=prog,
+            )
+    subs = parser.add_subparsers(dest='cmd')
+
+    discover = subs.add_parser('discover', parents=[common])
+
+    run = subs.add_parser('run', parents=[common])
+
+    debug = subs.add_parser('debug', parents=[common])
+
+    # Parse the args!
+    args = parser.parse_args(argv)
+    ns = vars(args)
+
+    cmd = ns.pop('cmd')
+    if not cmd:
+        parser.error('missing subcommand')
+    tool = ns.pop('tool')
+
+    return tool, cmd, ns
+
+
+def main(tool, cmd, subargs, tools=TOOLS):
+    tool = tools[tool]
+
+    if cmd == 'discover':
+        tool.discover(**subargs)
+    elif cmd == 'run':
+        tool.run(**subargs)
+    elif cmd == 'debug':
+        tool.debug(**subargs)
+    else:
+        raise Exception('unsupported cmd {!r}'.format(cmd))
+
+
+if __name__ == '__main__':
+    tool, cmd, subargs = parse_args()
+    main(tool, cmd, subargs)
