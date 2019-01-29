@@ -3,14 +3,11 @@ from __future__ import absolute_import
 import argparse
 import sys
 
-#from . import pytest
-unittest = None
-pytest = None
-nose = None
+from .tools import pytest, unittest_, nose
 
 
 TOOLS = {
-        'unittest': unittest,
+        'unittest': unittest_,
         'pytest': pytest,
         'nose': nose,
         }
