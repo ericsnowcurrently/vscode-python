@@ -1,5 +1,6 @@
 import unittest
 
+from tests.util import captured_stdout
 from testing_tools.adapter.__main__ import parse_args, main
 
 
@@ -53,27 +54,33 @@ class MainTests(unittest.TestCase):
 
     def test_discover(self):
         tool = StubTool('pytest')
-        main('pytest', 'discover', {'spam': 'eggs'}, tools={'pytest': tool})
+        with captured_stdout() as stdout:
+            main('pytest', 'discover', {'spam': 'eggs'}, tools={'pytest': tool})
 
         self.assertEqual(tool.calls, [
             ('discover', {'spam': 'eggs'}),
             ])
+        self.assertEqual(stdout.getvalue().strip(), '<TBD>')
 
     def test_run(self):
         tool = StubTool('pytest')
-        main('pytest', 'run', {'spam': 'eggs'}, tools={'pytest': tool})
+        with captured_stdout() as stdout:
+            main('pytest', 'run', {'spam': 'eggs'}, tools={'pytest': tool})
 
         self.assertEqual(tool.calls, [
             ('run', {'spam': 'eggs'}),
             ])
+        self.assertEqual(stdout.getvalue().strip(), '<TBD>')
 
     def test_debug(self):
         tool = StubTool('pytest')
-        main('pytest', 'debug', {'spam': 'eggs'}, tools={'pytest': tool})
+        with captured_stdout() as stdout:
+            main('pytest', 'debug', {'spam': 'eggs'}, tools={'pytest': tool})
 
         self.assertEqual(tool.calls, [
             ('debug', {'spam': 'eggs'}),
             ])
+        self.assertEqual(stdout.getvalue().strip(), '<TBD>')
 
 
 class StubTool(object):

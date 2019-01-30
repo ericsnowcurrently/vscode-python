@@ -4,6 +4,7 @@ import argparse
 import sys
 
 from .tools import pytest, unittest_, nose
+from .output_format import serialize_discovered, serialize_results
 
 
 TOOLS = {
@@ -53,11 +54,14 @@ def main(tool, cmd, subargs, tools=TOOLS):
     tool = tools[tool]
 
     if cmd == 'discover':
-        tool.discover(**subargs)
+        found = tool.discover(**subargs)
+        print(serialize_discovered(found))
     elif cmd == 'run':
-        tool.run(**subargs)
+        results = tool.run(**subargs)
+        print(serialize_results(results))
     elif cmd == 'debug':
-        tool.debug(**subargs)
+        results = tool.debug(**subargs)
+        print(serialize_results(results))
     else:
         raise Exception('unsupported cmd {!r}'.format(cmd))
 
