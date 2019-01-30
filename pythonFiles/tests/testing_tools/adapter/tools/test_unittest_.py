@@ -6,6 +6,7 @@ from testing_tools.adapter.tools.unittest_ import discover, run, debug
 
 class DiscoverTests(unittest.TestCase):
 
+    @unittest.expectedFailure
     def test_no_args(self):
         with captured_stdout():
             found = discover()
@@ -15,6 +16,7 @@ class DiscoverTests(unittest.TestCase):
 
 class RunTests(unittest.TestCase):
 
+    @unittest.expectedFailure
     def test_no_args(self):
         with captured_stdout():
             results = run()
@@ -24,6 +26,7 @@ class RunTests(unittest.TestCase):
 
 class DebugTests(unittest.TestCase):
 
+    @unittest.expectedFailure
     def test_no_args(self):
         with captured_stdout():
             results = debug()

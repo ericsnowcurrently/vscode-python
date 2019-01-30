@@ -62,6 +62,7 @@ class MainTests(unittest.TestCase):
             ])
         self.assertEqual(stdout.getvalue().strip(), '<TBD>')
 
+    @unittest.expectedFailure
     def test_run(self):
         tool = StubTool('pytest')
         with captured_stdout() as stdout:
@@ -72,6 +73,7 @@ class MainTests(unittest.TestCase):
             ])
         self.assertEqual(stdout.getvalue().strip(), '<TBD>')
 
+    @unittest.expectedFailure
     def test_debug(self):
         tool = StubTool('pytest')
         with captured_stdout() as stdout:

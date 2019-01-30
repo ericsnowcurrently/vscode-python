@@ -1,5 +1,6 @@
 import unittest
 
+
 from tests.util import captured_stdout
 from testing_tools.adapter.tools.pytest import discover, run, debug
 

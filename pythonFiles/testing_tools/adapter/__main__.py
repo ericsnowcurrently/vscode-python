@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from .tools import pytest, unittest_, nose
-from .output_format import serialize_discovered, serialize_results
+from .output_format import serialize_discovered
 
 
 TOOLS = {
@@ -12,6 +12,10 @@ TOOLS = {
         'pytest': pytest,
         'nose': nose,
         }
+
+
+def fail(msg):
+    sys.exit('ERROR: ' + msg)
 
 
 def parse_args(
@@ -51,19 +55,23 @@ def parse_args(
 
 
 def main(tool, cmd, subargs, tools=TOOLS):
+    if tool in ['unittest', 'nose']:
+        fail('{} not supported yet'.format(tool))
     tool = tools[tool]
 
     if cmd == 'discover':
         found = tool.discover(**subargs)
         print(serialize_discovered(found))
     elif cmd == 'run':
-        results = tool.run(**subargs)
-        print(serialize_results(results))
+        fail('run not supported yet')
+        #results = tool.run(**subargs)
+        #print(serialize_results(results))
     elif cmd == 'debug':
-        results = tool.debug(**subargs)
-        print(serialize_results(results))
+        fail('debug not supported yet')
+        #results = tool.debug(**subargs)
+        #print(serialize_results(results))
     else:
-        raise Exception('unsupported cmd {!r}'.format(cmd))
+        fail('unsupported cmd {!r}'.format(cmd))
 
 
 if __name__ == '__main__':
