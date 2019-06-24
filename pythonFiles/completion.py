@@ -10,6 +10,9 @@ import sys
 import traceback
 
 
+JEDI = os.path.join(os.path.dirname(__file__), 'lib', 'python')
+
+
 class RedirectStdout(object):
     def __init__(self, new_stdout=None):
         """If stdout is None, redirect to /dev/null"""
@@ -658,21 +661,39 @@ def watch(preview=False):
 # the script
 
 def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
-    cachePrefix = 'v'
-    modulesToLoad = ''
-    if len(argv) > 1 and argv[0] == 'custom':
-        jediPath = argv[1]
-        jediPreview = True
-        cachePrefix = 'custom_v'
-        if len(argv) > 2:
-            modulesToLoad = argv[2]
+    parser = argparse.ArgumentParser(
+            prog=prog,
+            )
+    parser.set_defaults(
+            jedipath=JEDI,
+            cmd=None,
+            )
+    if argv and argv[0] == 'custom':
+        subs = parser.add_subparsers(dest='cmd')
+        custom = subs.add_parser('custom')
+        custom.add_argument('jedipath')
+        custom.add_argument('modules', nargs='?')
+    else:
+        parser.add_argument('modules', nargs='?')
+
+    args, _ = parser.parse_known_args(argv)
+    ns = vars(args)
+
+    cmd = ns.pop('cmd')
+
+    if cmd == 'custom':
+        cacheprefix = 'custom_v'
+        preview = True
     else:
         #release
-        jediPath = os.path.join(os.path.dirname(__file__), 'lib', 'python')
-        jediPreview = False
-        if argv:
-            modulesToLoad = argv[0]
-    return jediPath, cachePrefix, modulesToLoad, jediPreview
+        assert not cmd
+        cacheprefix = 'v'
+        preview = False
+
+    pathentry = ns.pop('jedipath')
+    modules = ns.pop('modules')
+
+    return pathentry, cacheprefix, modules or '', preview
 
 
 def main(pathentry, cacheprefix, modules, preview=False,
