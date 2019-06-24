@@ -1,13 +1,14 @@
+import argparse
+import importlib
+import io
+import json
 import os
 import os.path
-import io
+import platform
 import re
 import sys
-import json
 import traceback
-import platform
 
-jediPreview = False
 
 class RedirectStdout(object):
     def __init__(self, new_stdout=None):
@@ -24,6 +25,7 @@ class RedirectStdout(object):
         os.dup2(self.oldstdout_fno, 1)
         os.close(self.oldstdout_fno)
 
+
 class JediCompletion(object):
     basic_types = {
         'module': 'import',
@@ -32,7 +34,8 @@ class JediCompletion(object):
         'param': 'variable',
     }
 
-    def __init__(self):
+    def __init__(self, preview=False):
+        self.preview = preview
         self.default_sys_path = sys.path
         self.environment = jedi.api.environment.Environment(sys.prefix, sys.executable)
         self._input = io.open(sys.stdin.fileno(), encoding='utf-8')
@@ -575,7 +578,7 @@ class JediCompletion(object):
             defs = self._get_definitionsx(script.goto_assignments(follow_imports=True), request['id'])
             return json.dumps({'id': request['id'], 'results': defs})
         if lookup == 'tooltip':
-            if jediPreview:
+            if self.preview:
                 defs = []
                 try:
                     defs = self._get_definitionsx(script.goto_definitions(), request['id'], True)
@@ -626,28 +629,72 @@ class JediCompletion(object):
                 sys.stderr.write(traceback.format_exc() + '\n')
                 sys.stderr.flush()
 
-if __name__ == '__main__':
+
+def set_up_jedi(pathentry, cacheprefix, modules, preview=False,
+                _sys_path=sys.path,
+                _import_module=importlib.import_module):
+    _sys_path.insert(0, pathentry)
+    jedi = _import_module('jedi')
+
+    if preview:
+        jedi.settings.cache_directory = os.path.join(
+            jedi.settings.cache_directory,
+            cacheprefix + jedi.__version__.replace('.', ''))
+
+    # remove jedi from path after we import it so it will not be completed
+    _sys_path.pop(0)
+
+    if modules:
+        jedi.preload_module(*modules.split(','))
+
+
+def watch(preview=False):
+    c = JediCompletion(preview=preview)
+    c.watch()
+
+
+
+#############################
+# the script
+
+def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
     cachePrefix = 'v'
     modulesToLoad = ''
-    if len(sys.argv) > 2 and sys.argv[1] == 'custom':
-        jediPath = sys.argv[2]
+    if len(argv) > 1 and argv[0] == 'custom':
+        jediPath = argv[1]
         jediPreview = True
         cachePrefix = 'custom_v'
-        if len(sys.argv) > 3:
-            modulesToLoad = sys.argv[3]
+        if len(argv) > 2:
+            modulesToLoad = argv[2]
     else:
         #release
         jediPath = os.path.join(os.path.dirname(__file__), 'lib', 'python')
-        if len(sys.argv) > 1:
-            modulesToLoad = sys.argv[1]
+        jediPreview = False
+        if argv:
+            modulesToLoad = argv[0]
+    return jediPath, cachePrefix, modulesToLoad, jediPreview
 
-    sys.path.insert(0, jediPath)
-    import jedi
-    if jediPreview:
+
+def main(pathentry, cacheprefix, modules, preview=False,
+         _sys_path=sys.path,
+         _import_module=importlib.import_module,
+         _watch=watch):
+    _sys_path.insert(0, pathentry)
+    jedi = _import_module('jedi')
+    if preview:
         jedi.settings.cache_directory = os.path.join(
-            jedi.settings.cache_directory, cachePrefix + jedi.__version__.replace('.', ''))
+            jedi.settings.cache_directory,
+            cacheprefix + jedi.__version__.replace('.', ''))
     # remove jedi from path after we import it so it will not be completed
-    sys.path.pop(0)
-    if len(modulesToLoad) > 0:
-        jedi.preload_module(*modulesToLoad.split(','))
-    JediCompletion().watch()
+    _sys_path.pop(0)
+    if modules:
+        jedi.preload_module(*modules.split(','))
+
+    #set_up_jedi(pathentry, cacheprefix, modules, preview=preview,
+    #            _sys_path=_sys_path, _import_module=_import_module)
+    _watch(preview=preview)
+
+
+if __name__ == '__main__':
+    pathentry, cacheprefix, modules, preview = parse_args()
+    main(pathentry, cacheprefix, modules, preview)
