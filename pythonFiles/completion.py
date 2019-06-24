@@ -37,8 +37,10 @@ class JediCompletion(object):
         'param': 'variable',
     }
 
-    def __init__(self, preview=False):
+    def __init__(self, jedi, preview=False):
         self.preview = preview
+        self.jedi = jedi
+
         self.default_sys_path = sys.path
         self.environment = jedi.api.environment.Environment(sys.prefix, sys.executable)
         self._input = io.open(sys.stdin.fileno(), encoding='utf-8')
@@ -525,7 +527,7 @@ class JediCompletion(object):
         self.use_snippets = config.get('useSnippets')
         self.show_doc_strings = config.get('showDescriptions', True)
         self.fuzzy_matcher = config.get('fuzzyMatcher', False)
-        jedi.settings.case_insensitive_completion = config.get(
+        self.jedi.settings.case_insensitive_completion = config.get(
             'caseInsensitiveCompletion', True)
         for path in config.get('extraPaths', []):
             if path and path not in sys.path:
@@ -565,14 +567,14 @@ class JediCompletion(object):
 
         if lookup == 'names':
             return self._serialize_definitions(
-                jedi.api.names(
+                self.jedi.api.names(
                     source=request.get('source', None),
                     path=request.get('path', ''),
                     all_scopes=True,
                     environment=self.environment),
                 request['id'])
 
-        script = jedi.Script(
+        script = self.jedi.Script(
             source=request.get('source', None), line=request['line'] + 1,
             column=request['column'], path=request.get('path', ''),
             sys_path=sys.path, environment=self.environment)
@@ -650,9 +652,11 @@ def set_up_jedi(pathentry, cacheprefix, modules, preview=False,
     if modules:
         jedi.preload_module(*modules.split(','))
 
+    return jedi
 
-def watch(preview=False):
-    c = JediCompletion(preview=preview)
+
+def watch(jedi, preview=False):
+    c = JediCompletion(jedi, preview=preview)
     c.watch()
 
 
@@ -693,27 +697,15 @@ def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
     pathentry = ns.pop('jedipath')
     modules = ns.pop('modules')
 
+    #return cmd, ns
     return pathentry, cacheprefix, modules or '', preview
 
 
 def main(pathentry, cacheprefix, modules, preview=False,
-         _sys_path=sys.path,
-         _import_module=importlib.import_module,
+         _set_up_jedi=set_up_jedi,
          _watch=watch):
-    _sys_path.insert(0, pathentry)
-    jedi = _import_module('jedi')
-    if preview:
-        jedi.settings.cache_directory = os.path.join(
-            jedi.settings.cache_directory,
-            cacheprefix + jedi.__version__.replace('.', ''))
-    # remove jedi from path after we import it so it will not be completed
-    _sys_path.pop(0)
-    if modules:
-        jedi.preload_module(*modules.split(','))
-
-    #set_up_jedi(pathentry, cacheprefix, modules, preview=preview,
-    #            _sys_path=_sys_path, _import_module=_import_module)
-    _watch(preview=preview)
+    jedi = _set_up_jedi(pathentry, cacheprefix, modules, preview=preview)
+    _watch(jedi, preview=preview)
 
 
 if __name__ == '__main__':
