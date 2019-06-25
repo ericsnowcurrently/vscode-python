@@ -4,7 +4,7 @@ import unittest
 
 from tests import SCRIPTS_ROOT
 from completion import (
-        parse_args, main, set_up_jedi, get_jedi,
+        parse_args, main, set_up_jedi, get_jedi, watch,
         JediCompletion
         )
 
@@ -44,7 +44,6 @@ class JediCompletionTests(TestBase):
             self.assertEqual(completions.drivemount, '')
         else:
             self.assertEqual(completions.drivemount, '/mnt/')
-        self.assertTrue(completions.preview)
 
     def test_defaults_custom(self):
         self._return_jedi___file__ = 'spam.py'
@@ -58,7 +57,6 @@ class JediCompletionTests(TestBase):
             self.assertEqual(completions.drivemount, '')
         else:
             self.assertEqual(completions.drivemount, '/mnt/')
-        self.assertFalse(completions.preview)
 
     @unittest.expectedFailure
     def test_watch(self):
@@ -189,6 +187,180 @@ class SetUpJediTests(TestBase):
             ('jedi.settings', ()),
             ('jedi.settings.cache_directory', (os.path.join('<cache>', 'custom_v0133'),)),
             ('jedi.preload_module', ('a', 'b', 'c')),
+            ])
+
+
+class WatchTests(TestBase):
+
+    def test_one_request(self):
+        jedi = self
+        self._return_get_stdin = self
+        self._return_get_completions = self
+        req0, _ = self._return_readline = [
+                '...\n',
+                '',
+                ]
+        env = self._return_get_jedi_environment = self
+        resp0, = self._return_process_request = [
+                '...',
+                ]
+
+        watch(jedi, preview=False,
+              _get_stdin=self._get_stdin,
+              _get_environment=self._get_jedi_environment,
+              _log_err=self._log_err,
+              _redirect_stdout=self._redirect_stdout,
+              _get_completions=self._get_completions,
+              )
+              
+        self.assertEqual(self.calls, [
+            ('_get_stdin', ()),
+            ('_get_environment', (jedi,)),
+            ('_get_completions', (jedi,)),
+            # iteration #1
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req0, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (response,)),
+            # iteration #2
+            ('infile.readline', ()),
+            ('_log_err', ('Received EOF from the standard input,exiting',)),
+            ])
+
+    def test_no_requests(self):
+        jedi = self
+        self._return_get_stdin = self
+        self._return_get_completions = self
+        self._return_readline = [
+                '',
+                ]
+        env = self._return_get_jedi_environment = self
+
+        watch(jedi, preview=False,
+              _get_stdin=self._get_stdin,
+              _get_environment=self._get_jedi_environment,
+              _log_err=self._log_err,
+              _redirect_stdout=self._redirect_stdout,
+              _get_completions=self._get_completions,
+              )
+              
+        self.assertEqual(self.calls, [
+            ('_get_stdin', ()),
+            ('_get_environment', (jedi,)),
+            ('_get_completions', (jedi,)),
+            # iteration #1
+            ('infile.readline', ()),
+            ('_log_err', ('Received EOF from the standard input,exiting',)),
+            ])
+
+    def test_multiple_requests(self):
+        jedi = self
+        self._return_get_stdin = self
+        self._return_get_completions = self
+        req0, req1, req2, _ = self._return_readline = [
+                '...\n',
+                '...\n',
+                '...\n',
+                '',
+                ]
+        env = self._return_get_jedi_environment = self
+        resp0, resp1, resp2 = self._return_process_request = [
+                '...',
+                '...',
+                '...',
+                ]
+
+        watch(jedi, preview=False,
+              _get_stdin=self._get_stdin,
+              _get_environment=self._get_jedi_environment,
+              _log_err=self._log_err,
+              _redirect_stdout=self._redirect_stdout,
+              _get_completions=self._get_completions,
+              )
+              
+        self.assertEqual(self.calls, [
+            ('_get_stdin', ()),
+            ('_get_environment', (jedi,)),
+            ('_get_completions', (jedi,)),
+            # iteration #1
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req0, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (resp0,)),
+            # iteration #2
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req1, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (resp1,)),
+            # iteration #3
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req2, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (resp2,)),
+            # iteration #4
+            ('infile.readline', ()),
+            ('_log_err', ('Received EOF from the standard input,exiting',)),
+            ])
+
+    def test_error(self):
+        jedi = self
+        self._return_get_stdin = self
+        self._return_get_completions = self
+        req0, req1, req2, _ = self._return_readline = [
+                '...\n',
+                '',
+                ]
+        env = self._return_get_jedi_environment = self
+        resp0, resp1, resp2 = self._return_process_request = [
+                '...',
+                '...',
+                '...',
+                ]
+
+        watch(jedi, preview=False,
+              _get_stdin=self._get_stdin,
+              _get_environment=self._get_jedi_environment,
+              _log_err=self._log_err,
+              _redirect_stdout=self._redirect_stdout,
+              _get_completions=self._get_completions,
+              )
+              
+        self.assertEqual(self.calls, [
+            ('_get_stdin', ()),
+            ('_get_environment', (jedi,)),
+            ('_get_completions', (jedi,)),
+            # iteration #1
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req0, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (resp0,)),
+            # iteration #2
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req1, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (resp1,)),
+            # iteration #3
+            ('infile.readline', ()),
+            ('_redirect_stdout', ()),
+            ('_redirect_stdout.__enter__', ()),
+            ('completions.process_request', (req2, env), {'preview': False}),
+            ('_redirect_stdout.__exit__', (None, None, None)),
+            ('completions.write_response', (resp2,)),
+            # iteration #4
+            ('infile.readline', ()),
+            ('_log_err', ('Received EOF from the standard input,exiting',)),
             ])
 
 

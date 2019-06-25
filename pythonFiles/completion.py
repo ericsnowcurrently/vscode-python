@@ -44,33 +44,31 @@ def get_drivemount():
 
 
 class JediCompletion(object):
-    basic_types = {
-        'module': 'import',
-        'instance': 'variable',
-        'statement': 'value',
-        'param': 'variable',
-    }
 
-    def __init__(self, jedi, defaultsyspath=None, drivemount=None, preview=None):
+    BASIC_TYPES = {
+            'module': 'import',
+            'instance': 'variable',
+            'statement': 'value',
+            'param': 'variable',
+            }
+
+    NODES_TO_DISPLAY = [
+            'InstanceElement',
+            'String',
+            'Node',
+            'Lambda',
+            'Number',
+            ]
+
+    def __init__(self, jedi, defaultsyspath=None, drivemount=None):
         if not defaultsyspath:
             defaultsyspath = sys.path
         if not drivemount:
             drivemount = get_drivemount()
-        if preview is None:
-            preview = jedi.__file__.startswith(PATH_ENTRY)
 
         self.jedi = jedi
         self.defaultsyspath = defaultsyspath
         self.drivemount = drivemount
-        self.preview = preview
-
-        # These are set in self.open().
-        self.environment = None
-        self._input = None
-
-    def open(self):
-        self.environment = jedi.api.environment.Environment(sys.prefix, sys.executable)
-        self._input = io.open(sys.stdin.fileno(), encoding='utf-8')
 
     def _get_definition_type(self, definition):
         # if definition.type not in ['import', 'keyword'] and is_built_in():
@@ -78,21 +76,24 @@ class JediCompletion(object):
         try:
             if definition.type in ['statement'] and definition.name.isupper():
                 return 'constant'
-            return self.basic_types.get(definition.type, definition.type)
+            return self.BASIC_TYPES.get(definition.type, definition.type)
         except Exception:
             return 'builtin'
 
     def _additional_info(self, completion):
         """Provide additional information about the completion object."""
-        if not hasattr(completion, '_definition') or completion._definition is None:
+        if not hasattr(completion, '_definition'):
             return ''
-        if completion.type == 'statement':
-            nodes_to_display = ['InstanceElement', 'String', 'Node', 'Lambda',
-                                'Number']
-            return ''.join(c.get_code() for c in
-                           completion._definition.children if type(c).__name__
-                           in nodes_to_display).replace('\n', '')
-        return ''
+        elif completion._definition is None:
+            return ''
+        elif completion.type == 'statement':
+            nodetypes = self.NODES_TO_DISPLAY
+            return (''.join(c.get_code()
+                            for c in completion._definition.children
+                            if type(c).__name__ in nodetypes)
+                    ).replace('\n', '')
+        else:
+            return ''
 
     @classmethod
     def _get_top_level_module(cls, path):
@@ -568,7 +569,7 @@ class JediCompletion(object):
                 # is relative path
                 request['path'] = newPath
 
-    def _process_request(self, request):
+    def process_request(self, request, environment, preview=False):
         """Accept serialized request from VSCode and write response.
         """
         request = self._deserialize(request)
@@ -587,19 +588,19 @@ class JediCompletion(object):
                     source=request.get('source', None),
                     path=request.get('path', ''),
                     all_scopes=True,
-                    environment=self.environment),
+                    environment=environment),
                 request['id'])
 
         script = self.jedi.Script(
             source=request.get('source', None), line=request['line'] + 1,
             column=request['column'], path=request.get('path', ''),
-            sys_path=sys.path, environment=self.environment)
+            sys_path=sys.path, environment=environment)
 
         if lookup == 'definitions':
             defs = self._get_definitionsx(script.goto_assignments(follow_imports=True), request['id'])
             return json.dumps({'id': request['id'], 'results': defs})
-        if lookup == 'tooltip':
-            if self.preview:
+        elif lookup == 'tooltip':
+            if preview:
                 defs = []
                 try:
                     defs = self._get_definitionsx(script.goto_definitions(), request['id'], True)
@@ -629,29 +630,9 @@ class JediCompletion(object):
             return self._serialize_completions(script, request['id'],
                                             request.get('prefix', ''))
 
-    def _write_response(self, response):
+    def write_response(self, response):
         sys.stdout.write(response + '\n')
         sys.stdout.flush()
-
-    def watch(self):
-        if not self.environment or not self._input:
-            raise Exception('please call JediCompletion.open() first.')
-
-        while True:
-            try:
-                rq = self._input.readline()
-                if len(rq) == 0:
-                    # Reached EOF - indication our parent process is gone.
-                    sys.stderr.write('Received EOF from the standard input,exiting' + '\n')
-                    sys.stderr.flush()
-                    return
-                with RedirectStdout():
-                    response = self._process_request(rq)
-                self._write_response(response)
-
-            except Exception:
-                sys.stderr.write(traceback.format_exc() + '\n')
-                sys.stderr.flush()
 
 
 def get_jedi(pathentry=PATH_ENTRY,
@@ -675,10 +656,42 @@ def set_up_jedi(jedi, modules='', preview=False):
         jedi.preload_module(*modules.split(','))
 
 
-def watch(jedi, preview=False):
-    c = JediCompletion(jedi, preview=preview)
-    c.open()
-    c.watch()
+def _get_jedi_environment(jedi):
+    return jedi.api.environment.Environment(sys.prefix, sys.executable)
+
+
+def _log_err(msg):
+    sys.stderr.write(msg + '\n')
+    sys.stderr.flush()
+
+
+def _get_stdin():
+    return io.open(sys.stdin.fileno(), encoding='utf-8')
+
+
+def watch(jedi, preview=False,
+          _get_stdin=_get_stdin,
+          _get_environment=_get_jedi_environment,
+          _log_err=_log_err,
+          _redirect_stdout=RedirectStdout,
+          _get_completions=JediCompletion,
+          ):
+    infile = _get_stdin()
+    environment = _get_environment(jedi)
+    completions = _get_completions(jedi)
+    while True:
+        try:
+            req = infile.readline()
+            if len(req) == 0:
+                # Reached EOF - indication our parent process is gone.
+                _log_err('Received EOF from the standard input,exiting')
+                return
+            with _redirect_stdout():
+                response = completions.process_request(req, environment,
+                                                        preview=preview)
+            completions.write_response(response)
+        except Exception:
+            _log_err(traceback.format_exc())
 
 
 #############################
@@ -722,7 +735,8 @@ def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
 def main(pathentry, modules, preview=False,
          _get_jedi=get_jedi,
          _set_up_jedi=set_up_jedi,
-         _watch=watch):
+         _watch=watch,
+         ):
     jedi = _get_jedi(pathentry)
     _set_up_jedi(jedi, modules, preview=preview)
     _watch(jedi, preview=preview)
