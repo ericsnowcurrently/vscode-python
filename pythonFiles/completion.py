@@ -10,7 +10,7 @@ import sys
 import traceback
 
 
-JEDI = os.path.join(os.path.dirname(__file__), 'lib', 'python')
+PATH_ENTRY = os.path.join(os.path.dirname(__file__), 'lib', 'python')
 
 
 class RedirectStdout(object):
@@ -29,6 +29,20 @@ class RedirectStdout(object):
         os.close(self.oldstdout_fno)
 
 
+def get_drivemount():
+    if (os.path.sep == '/') and (platform.uname()[2].find('Microsoft') > -1):
+        # WSL; does not support UNC paths
+        return '/mnt/'
+    elif sys.platform == 'cygwin':
+        # cygwin
+        return '/cygdrive/'
+    else:
+        # Do no normalization, e.g. Windows build of Python.
+        # Could add additional test: ((os.path.sep == '/') and os.path.isdir('/mnt/c'))
+        # However, this may have more false positives trying to identify Windows/*nix hybrids
+        return ''
+
+
 class JediCompletion(object):
     basic_types = {
         'module': 'import',
@@ -37,24 +51,26 @@ class JediCompletion(object):
         'param': 'variable',
     }
 
-    def __init__(self, jedi, preview=False):
-        self.preview = preview
-        self.jedi = jedi
+    def __init__(self, jedi, defaultsyspath=None, drivemount=None, preview=None):
+        if not defaultsyspath:
+            defaultsyspath = sys.path
+        if not drivemount:
+            drivemount = get_drivemount()
+        if preview is None:
+            preview = jedi.__file__.startswith(PATH_ENTRY)
 
-        self.default_sys_path = sys.path
+        self.jedi = jedi
+        self.defaultsyspath = defaultsyspath
+        self.drivemount = drivemount
+        self.preview = preview
+
+        # These are set in self.open().
+        self.environment = None
+        self._input = None
+
+    def open(self):
         self.environment = jedi.api.environment.Environment(sys.prefix, sys.executable)
         self._input = io.open(sys.stdin.fileno(), encoding='utf-8')
-        if (os.path.sep == '/') and (platform.uname()[2].find('Microsoft') > -1):
-            # WSL; does not support UNC paths
-            self.drive_mount = '/mnt/'
-        elif sys.platform == 'cygwin':
-            # cygwin
-            self.drive_mount = '/cygdrive/'
-        else:
-            # Do no normalization, e.g. Windows build of Python.
-            # Could add additional test: ((os.path.sep == '/') and os.path.isdir('/mnt/c'))
-            # However, this may have more false positives trying to identify Windows/*nix hybrids
-            self.drive_mount = ''
 
     def _get_definition_type(self, definition):
         # if definition.type not in ['import', 'keyword'] and is_built_in():
@@ -523,7 +539,7 @@ class JediCompletion(object):
         Args:
             config: Dictionary with config values.
         """
-        sys.path = self.default_sys_path
+        sys.path = self.defaultsyspath
         self.use_snippets = config.get('useSnippets')
         self.show_doc_strings = config.get('showDescriptions', True)
         self.fuzzy_matcher = config.get('fuzzyMatcher', False)
@@ -539,7 +555,7 @@ class JediCompletion(object):
            i.e. *nix paths received by a Windows build of Python.
         """
         if 'path' in request:
-            if not self.drive_mount:
+            if not self.drivemount:
                 return
             newPath = request['path'].replace('\\', '/')
             if newPath[0:1] == '/':
@@ -547,7 +563,7 @@ class JediCompletion(object):
                 request['path'] = newPath
             elif newPath[1:2] == ':':
                 # is path with drive letter, only absolute can be mapped
-                request['path'] = self.drive_mount + newPath[0:1].lower() + newPath[2:]
+                request['path'] = self.drivemount + newPath[0:1].lower() + newPath[2:]
             else:
                 # is relative path
                 request['path'] = newPath
@@ -618,6 +634,9 @@ class JediCompletion(object):
         sys.stdout.flush()
 
     def watch(self):
+        if not self.environment or not self._input:
+            raise Exception('please call JediCompletion.open() first.')
+
         while True:
             try:
                 rq = self._input.readline()
@@ -635,10 +654,10 @@ class JediCompletion(object):
                 sys.stderr.flush()
 
 
-def get_jedi(pathentry=JEDI,
+def get_jedi(pathentry=PATH_ENTRY,
              _sys_path=sys.path,
              _import_module=importlib.import_module):
-    pathentry = pathentry or JEDI
+    pathentry = pathentry or PATH_ENTRY
     _sys_path.insert(0, pathentry)
     try:
         return _import_module('jedi')
@@ -658,8 +677,8 @@ def set_up_jedi(jedi, modules='', preview=False):
 
 def watch(jedi, preview=False):
     c = JediCompletion(jedi, preview=preview)
+    c.open()
     c.watch()
-
 
 
 #############################
@@ -670,7 +689,7 @@ def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
             prog=prog,
             )
     parser.set_defaults(
-            jedipath=JEDI,
+            jedipath=PATH_ENTRY,
             cmd=None,
             )
     if argv and argv[0] == 'custom':
@@ -696,7 +715,7 @@ def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
     pathentry = ns.pop('jedipath')
     modules = ns.pop('modules')
 
-    #return cmd, ns, preview
+    assert not ns
     return pathentry, modules or '', preview
 
 

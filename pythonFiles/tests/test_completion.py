@@ -1,4 +1,5 @@
 import os.path
+import sys
 import unittest
 
 from tests import SCRIPTS_ROOT
@@ -8,7 +9,7 @@ from completion import (
         )
 
 
-JEDI = os.path.join(SCRIPTS_ROOT, 'lib', 'python')
+PATH_ENTRY = os.path.join(SCRIPTS_ROOT, 'lib', 'python')
 
 
 class TestBase(unittest.TestCase):
@@ -23,6 +24,41 @@ class TestBase(unittest.TestCase):
 
 
 class JediCompletionTests(TestBase):
+
+    _return_jedi___file__ = None
+
+    @property
+    def __file__(self):
+        self.calls.append(('jedi.__file__', ()))
+        return self._return_jedi___file__
+
+    def test_defaults_not_custom(self):
+        self._return_jedi___file__ = os.path.join(PATH_ENTRY, 'jedi', '__init__.py')
+        jedi = self
+
+        completions = JediCompletion(jedi)
+
+        self.assertIs(completions.jedi, jedi)
+        self.assertEqual(completions.defaultsyspath, sys.path)
+        if os.path.sep == '/':
+            self.assertEqual(completions.drivemount, '')
+        else:
+            self.assertEqual(completions.drivemount, '/mnt/')
+        self.assertTrue(completions.preview)
+
+    def test_defaults_custom(self):
+        self._return_jedi___file__ = 'spam.py'
+        jedi = self
+
+        completions = JediCompletion(jedi)
+
+        self.assertIs(completions.jedi, jedi)
+        self.assertEqual(completions.defaultsyspath, sys.path)
+        if os.path.sep == '/':
+            self.assertEqual(completions.drivemount, '')
+        else:
+            self.assertEqual(completions.drivemount, '/mnt/')
+        self.assertFalse(completions.preview)
 
     @unittest.expectedFailure
     def test_watch(self):
@@ -52,7 +88,7 @@ class GetJediTests(TestBase):
 
         self.assertIs(jedi, expected)
         self.assertEqual(self.calls, [
-            ('_sys_path.insert', (0, JEDI)),
+            ('_sys_path.insert', (0, PATH_ENTRY)),
             ('_import_module', ('jedi',)),
             ('_sys_path.pop', (0,)),
             ])
@@ -161,7 +197,7 @@ class ParseArgsTests(TestBase):
     def test_no_args(self):
         jedi, modules, preview = parse_args('completion.py', [])
 
-        self.assertEqual(jedi, JEDI)
+        self.assertEqual(jedi, PATH_ENTRY)
         self.assertEqual(modules, '')
         self.assertFalse(preview)
 
@@ -170,7 +206,7 @@ class ParseArgsTests(TestBase):
             'a,b,c',  # modules
             ])
 
-        self.assertEqual(jedi, JEDI)
+        self.assertEqual(jedi, PATH_ENTRY)
         self.assertEqual(modules, 'a,b,c')
         self.assertFalse(preview)
 
