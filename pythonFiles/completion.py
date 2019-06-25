@@ -635,25 +635,25 @@ class JediCompletion(object):
                 sys.stderr.flush()
 
 
-def set_up_jedi(pathentry=None, modules='', preview=False,
-                _sys_path=sys.path,
-                _import_module=importlib.import_module):
+def get_jedi(pathentry=JEDI,
+             _sys_path=sys.path,
+             _import_module=importlib.import_module):
+    pathentry = pathentry or JEDI
     _sys_path.insert(0, pathentry)
-    jedi = _import_module('jedi')
+    try:
+        return _import_module('jedi')
+    finally:
+        # remove jedi from path after we import it so it will not be completed
+        _sys_path.pop(0)
 
-    # TODO: Move this below _sys_path.pop().
+
+def set_up_jedi(jedi, modules='', preview=False):
     if preview:
         jedi.settings.cache_directory = os.path.join(
             jedi.settings.cache_directory,
             'custom_v' + jedi.__version__.replace('.', ''))
-
-    # remove jedi from path after we import it so it will not be completed
-    _sys_path.pop(0)
-
     if modules:
         jedi.preload_module(*modules.split(','))
-
-    return jedi
 
 
 def watch(jedi, preview=False):
@@ -701,9 +701,11 @@ def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
 
 
 def main(pathentry, modules, preview=False,
+         _get_jedi=get_jedi,
          _set_up_jedi=set_up_jedi,
          _watch=watch):
-    jedi = _set_up_jedi(pathentry, modules, preview=preview)
+    jedi = _get_jedi(pathentry)
+    _set_up_jedi(jedi, modules, preview=preview)
     _watch(jedi, preview=preview)
 
 

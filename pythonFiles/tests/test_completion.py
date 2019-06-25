@@ -2,24 +2,16 @@ import os.path
 import unittest
 
 from tests import SCRIPTS_ROOT
-from completion import JediCompletion, parse_args, main, set_up_jedi
+from completion import (
+        parse_args, main, set_up_jedi, get_jedi,
+        JediCompletion
+        )
 
 
 JEDI = os.path.join(SCRIPTS_ROOT, 'lib', 'python')
 
 
-class JediCompletionTests(unittest.TestCase):
-
-    @unittest.expectedFailure
-    def test_watch(self):
-        raise NotImplementedError
-
-
-class SetUpJediTests(unittest.TestCase):
-
-    _return_import_module = None
-    _return_cache_directory = '<cache>'
-    _return_jedi_version = '0.13.3'
+class TestBase(unittest.TestCase):
 
     @property
     def calls(self):
@@ -28,6 +20,18 @@ class SetUpJediTests(unittest.TestCase):
         except AttributeError:
             self._calls = []
             return self._calls
+
+
+class JediCompletionTests(TestBase):
+
+    @unittest.expectedFailure
+    def test_watch(self):
+        raise NotImplementedError
+
+
+class GetJediTests(TestBase):
+
+    _return_import_module = None
 
     def insert(self, index, pathentry):
         self.calls.append(('_sys_path.insert', (index, pathentry)))
@@ -38,6 +42,41 @@ class SetUpJediTests(unittest.TestCase):
     def _import_module(self, name):
         self.calls.append(('_import_module', (name,)))
         return self._return_import_module
+
+    def test_default(self):
+        expected = self._return_import_module = object()
+
+        jedi = get_jedi(_sys_path=self,
+                        _import_module=self._import_module,
+                        )
+
+        self.assertIs(jedi, expected)
+        self.assertEqual(self.calls, [
+            ('_sys_path.insert', (0, JEDI)),
+            ('_import_module', ('jedi',)),
+            ('_sys_path.pop', (0,)),
+            ])
+
+    def test_custom(self):
+        expected = self._return_import_module = object()
+
+        jedi = get_jedi(pathentry='<jedi path>',
+                        _sys_path=self,
+                        _import_module=self._import_module,
+                        )
+
+        self.assertIs(jedi, expected)
+        self.assertEqual(self.calls, [
+            ('_sys_path.insert', (0, '<jedi path>')),
+            ('_import_module', ('jedi',)),
+            ('_sys_path.pop', (0,)),
+            ])
+
+
+class SetUpJediTests(TestBase):
+
+    _return_cache_directory = '<cache>'
+    _return_jedi_version = '0.13.3'
 
     @property
     def settings(self):
@@ -62,87 +101,62 @@ class SetUpJediTests(unittest.TestCase):
         return self._return_jedi_version
 
     def test_no_args(self):
-        expected = self._return_import_module = object()
+        jedi = self._return_import_module = object()
 
-        jedi = set_up_jedi(pathentry='<jedi path>',
-                           modules='',
-                           preview=False,
-                           _sys_path=self,
-                           _import_module=self._import_module,
-                           )
+        set_up_jedi(jedi,
+                    modules='',
+                    preview=False,
+                    )
 
-        self.assertIs(jedi, expected)
-        self.assertEqual(self.calls, [
-            ('_sys_path.insert', (0, '<jedi path>')),
-            ('_import_module', ('jedi',)),
-            ('_sys_path.pop', (0,)),
-            ])
+        self.assertEqual(self.calls, [])
 
     def test_modules_only(self):
-        expected = self._return_import_module = self
+        jedi = self._return_import_module = self
 
-        jedi = set_up_jedi(pathentry='<jedi path>',
-                           modules='a,b,c',
-                           preview=False,
-                           _sys_path=self,
-                           _import_module=self._import_module,
-                           )
+        set_up_jedi(jedi,
+                    modules='a,b,c',
+                    preview=False,
+                    )
 
-        self.assertIs(jedi, expected)
         self.assertEqual(self.calls, [
-            ('_sys_path.insert', (0, '<jedi path>')),
-            ('_import_module', ('jedi',)),
-            ('_sys_path.pop', (0,)),
             ('jedi.preload_module', ('a', 'b', 'c')),
             ])
 
     def test_custom_without_modules(self):
-        expected = self._return_import_module = self
+        jedi = self._return_import_module = self
 
-        jedi = set_up_jedi(pathentry='<jedi path>',
-                           modules='',
-                           preview=True,
-                           _sys_path=self,
-                           _import_module=self._import_module,
-                           )
+        set_up_jedi(jedi,
+                    modules='',
+                    preview=True,
+                    )
 
-        self.assertIs(jedi, expected)
         self.assertEqual(self.calls, [
-            ('_sys_path.insert', (0, '<jedi path>')),
-            ('_import_module', ('jedi',)),
             ('jedi.settings', ()),
             ('jedi.settings.cache_directory', ()),
             ('jedi.__version__', ()),
             ('jedi.settings', ()),
             ('jedi.settings.cache_directory', (os.path.join('<cache>', 'custom_v0133'),)),
-            ('_sys_path.pop', (0,)),
             ])
 
     def test_custom_with_modules(self):
-        expected = self._return_import_module = self
+        jedi = self._return_import_module = self
 
-        jedi = set_up_jedi(pathentry='<jedi path>',
-                           modules='a,b,c',
-                           preview=True,
-                           _sys_path=self,
-                           _import_module=self._import_module,
-                           )
+        set_up_jedi(jedi,
+                    modules='a,b,c',
+                    preview=True,
+                    )
 
-        self.assertIs(jedi, expected)
         self.assertEqual(self.calls, [
-            ('_sys_path.insert', (0, '<jedi path>')),
-            ('_import_module', ('jedi',)),
             ('jedi.settings', ()),
             ('jedi.settings.cache_directory', ()),
             ('jedi.__version__', ()),
             ('jedi.settings', ()),
             ('jedi.settings.cache_directory', (os.path.join('<cache>', 'custom_v0133'),)),
-            ('_sys_path.pop', (0,)),
             ('jedi.preload_module', ('a', 'b', 'c')),
             ])
 
 
-class ParseArgsTests(unittest.TestCase):
+class ParseArgsTests(TestBase):
 
     def test_no_args(self):
         jedi, modules, preview = parse_args('completion.py', [])
@@ -204,81 +218,84 @@ class ParseArgsTests(unittest.TestCase):
         self.assertTrue(preview)
 
 
-class MainTests(unittest.TestCase):
+class MainTests(TestBase):
 
-    _return_set_up_jedi = None
+    _return_get_jedi = None
 
-    @property
-    def calls(self):
-        try:
-            return self._calls
-        except AttributeError:
-            self._calls = []
-            return self._calls
+    def _get_jedi(self, pathentry):
+        self.calls.append(('_get_jedi', (pathentry,)))
+        return self._return_get_jedi
 
-    def _set_up_jedi(self, pathentry, modules, preview):
-        self.calls.append(('_set_up_jedi', (pathentry, modules, preview)))
-        return self._return_set_up_jedi
+    def _set_up_jedi(self, jedi, modules, preview):
+        self.calls.append(('_set_up_jedi', (jedi, modules, preview)))
 
     def _watch(self, jedi, **kwargs):
         self.calls.append(('_watch', (jedi,), kwargs))
 
     def test_no_args(self):
-        expected = self._return_set_up_jedi = object()
+        expected = self._return_get_jedi = object()
 
         main(pathentry='<jedi path>',
              modules='',
              preview=False,
+             _get_jedi=self._get_jedi,
              _set_up_jedi=self._set_up_jedi,
              _watch=self._watch,
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', '', False)),
+            ('_get_jedi', ('<jedi path>',)),
+            ('_set_up_jedi', (expected, '', False)),
             ('_watch', (expected,), {'preview': False}),
             ])
 
     def test_modules_only(self):
-        expected = self._return_set_up_jedi = self
+        expected = self._return_get_jedi = self
 
         main(pathentry='<jedi path>',
              modules='a,b,c',
              preview=False,
+             _get_jedi=self._get_jedi,
              _set_up_jedi=self._set_up_jedi,
              _watch=self._watch,
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', 'a,b,c', False)),
+            ('_get_jedi', ('<jedi path>',)),
+            ('_set_up_jedi', (expected, 'a,b,c', False)),
             ('_watch', (expected,), {'preview': False}),
             ])
 
     def test_custom_without_modules(self):
-        expected = self._return_set_up_jedi = self
+        expected = self._return_get_jedi = self
 
         main(pathentry='<jedi path>',
              modules='',
              preview=True,
+             _get_jedi=self._get_jedi,
              _set_up_jedi=self._set_up_jedi,
              _watch=self._watch,
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', '', True)),
+            ('_get_jedi', ('<jedi path>',)),
+            ('_set_up_jedi', (expected, '', True)),
             ('_watch', (expected,), {'preview': True}),
             ])
 
     def test_custom_with_modules(self):
-        expected = self._return_set_up_jedi = self
+        expected = self._return_get_jedi = self
 
         main(pathentry='<jedi path>',
              modules='a,b,c',
              preview=True,
+             _get_jedi=self._get_jedi,
              _set_up_jedi=self._set_up_jedi,
              _watch=self._watch,
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', 'a,b,c', True)),
+            ('_get_jedi', ('<jedi path>',)),
+            ('_set_up_jedi', (expected, 'a,b,c', True)),
             ('_watch', (expected,), {'preview': True}),
             ])
