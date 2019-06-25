@@ -65,7 +65,6 @@ class SetUpJediTests(unittest.TestCase):
         expected = self._return_import_module = object()
 
         jedi = set_up_jedi(pathentry='<jedi path>',
-                           cacheprefix='v',
                            modules='',
                            preview=False,
                            _sys_path=self,
@@ -83,7 +82,6 @@ class SetUpJediTests(unittest.TestCase):
         expected = self._return_import_module = self
 
         jedi = set_up_jedi(pathentry='<jedi path>',
-                           cacheprefix='v',
                            modules='a,b,c',
                            preview=False,
                            _sys_path=self,
@@ -102,7 +100,6 @@ class SetUpJediTests(unittest.TestCase):
         expected = self._return_import_module = self
 
         jedi = set_up_jedi(pathentry='<jedi path>',
-                           cacheprefix='custom_v',
                            modules='',
                            preview=True,
                            _sys_path=self,
@@ -125,7 +122,6 @@ class SetUpJediTests(unittest.TestCase):
         expected = self._return_import_module = self
 
         jedi = set_up_jedi(pathentry='<jedi path>',
-                           cacheprefix='custom_v',
                            modules='a,b,c',
                            preview=True,
                            _sys_path=self,
@@ -149,59 +145,54 @@ class SetUpJediTests(unittest.TestCase):
 class ParseArgsTests(unittest.TestCase):
 
     def test_no_args(self):
-        jedi, prefix, modules, preview = parse_args('completion.py', [])
+        jedi, modules, preview = parse_args('completion.py', [])
 
         self.assertEqual(jedi, JEDI)
-        self.assertEqual(prefix, 'v')
         self.assertEqual(modules, '')
         self.assertFalse(preview)
 
     def test_one_arg(self):
-        jedi, prefix, modules, preview = parse_args('completion.py', [
+        jedi, modules, preview = parse_args('completion.py', [
             'a,b,c',  # modules
             ])
 
         self.assertEqual(jedi, JEDI)
-        self.assertEqual(prefix, 'v')
         self.assertEqual(modules, 'a,b,c')
         self.assertFalse(preview)
 
     def test_two_args(self):
-        jedi, prefix, modules, preview = parse_args('completion.py', [
+        jedi, modules, preview = parse_args('completion.py', [
             'custom',
             '<jedi path>',  # jedi
             ])
 
         self.assertEqual(jedi, '<jedi path>')
-        self.assertEqual(prefix, 'custom_v')
         self.assertEqual(modules, '')
         self.assertTrue(preview)
 
     def test_three_args(self):
-        jedi, prefix, modules, preview = parse_args('completion.py', [
+        jedi, modules, preview = parse_args('completion.py', [
             'custom',
             '<jedi path>',  # jedi
             'a,b,c',  # modules
             ])
 
         self.assertEqual(jedi, '<jedi path>')
-        self.assertEqual(prefix, 'custom_v')
         self.assertEqual(modules, 'a,b,c')
         self.assertTrue(preview)
 
     def test_extra_args_non_custom(self):
-        jedi, prefix, modules, preview = parse_args('completion.py', [
+        jedi, modules, preview = parse_args('completion.py', [
             'a,b,c',  # modules
             '???',
             ])
 
         self.assertEqual(jedi, os.path.join(SCRIPTS_ROOT, 'lib', 'python'))
-        self.assertEqual(prefix, 'v')
         self.assertEqual(modules, 'a,b,c')
         self.assertFalse(preview)
 
     def test_extra_args_custom(self):
-        jedi, prefix, modules, preview = parse_args('completion.py', [
+        jedi, modules, preview = parse_args('completion.py', [
             'custom',
             '<jedi path>',  # jedi
             'a,b,c',  # modules
@@ -209,7 +200,6 @@ class ParseArgsTests(unittest.TestCase):
             ])
 
         self.assertEqual(jedi, '<jedi path>')
-        self.assertEqual(prefix, 'custom_v')
         self.assertEqual(modules, 'a,b,c')
         self.assertTrue(preview)
 
@@ -226,8 +216,8 @@ class MainTests(unittest.TestCase):
             self._calls = []
             return self._calls
 
-    def _set_up_jedi(self, pathentry, cacheprefix, modules, preview):
-        self.calls.append(('_set_up_jedi', (pathentry, cacheprefix, modules, preview)))
+    def _set_up_jedi(self, pathentry, modules, preview):
+        self.calls.append(('_set_up_jedi', (pathentry, modules, preview)))
         return self._return_set_up_jedi
 
     def _watch(self, jedi, **kwargs):
@@ -237,7 +227,6 @@ class MainTests(unittest.TestCase):
         expected = self._return_set_up_jedi = object()
 
         main(pathentry='<jedi path>',
-             cacheprefix='v',
              modules='',
              preview=False,
              _set_up_jedi=self._set_up_jedi,
@@ -245,7 +234,7 @@ class MainTests(unittest.TestCase):
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', 'v', '', False)),
+            ('_set_up_jedi', ('<jedi path>', '', False)),
             ('_watch', (expected,), {'preview': False}),
             ])
 
@@ -253,7 +242,6 @@ class MainTests(unittest.TestCase):
         expected = self._return_set_up_jedi = self
 
         main(pathentry='<jedi path>',
-             cacheprefix='v',
              modules='a,b,c',
              preview=False,
              _set_up_jedi=self._set_up_jedi,
@@ -261,7 +249,7 @@ class MainTests(unittest.TestCase):
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', 'v', 'a,b,c', False)),
+            ('_set_up_jedi', ('<jedi path>', 'a,b,c', False)),
             ('_watch', (expected,), {'preview': False}),
             ])
 
@@ -269,7 +257,6 @@ class MainTests(unittest.TestCase):
         expected = self._return_set_up_jedi = self
 
         main(pathentry='<jedi path>',
-             cacheprefix='custom_v',
              modules='',
              preview=True,
              _set_up_jedi=self._set_up_jedi,
@@ -277,7 +264,7 @@ class MainTests(unittest.TestCase):
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', 'custom_v', '', True)),
+            ('_set_up_jedi', ('<jedi path>', '', True)),
             ('_watch', (expected,), {'preview': True}),
             ])
 
@@ -285,7 +272,6 @@ class MainTests(unittest.TestCase):
         expected = self._return_set_up_jedi = self
 
         main(pathentry='<jedi path>',
-             cacheprefix='custom_v',
              modules='a,b,c',
              preview=True,
              _set_up_jedi=self._set_up_jedi,
@@ -293,6 +279,6 @@ class MainTests(unittest.TestCase):
              )
 
         self.assertEqual(self.calls, [
-            ('_set_up_jedi', ('<jedi path>', 'custom_v', 'a,b,c', True)),
+            ('_set_up_jedi', ('<jedi path>', 'a,b,c', True)),
             ('_watch', (expected,), {'preview': True}),
             ])

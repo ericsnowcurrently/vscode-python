@@ -635,16 +635,17 @@ class JediCompletion(object):
                 sys.stderr.flush()
 
 
-def set_up_jedi(pathentry, cacheprefix, modules, preview=False,
+def set_up_jedi(pathentry=None, modules='', preview=False,
                 _sys_path=sys.path,
                 _import_module=importlib.import_module):
     _sys_path.insert(0, pathentry)
     jedi = _import_module('jedi')
 
+    # TODO: Move this below _sys_path.pop().
     if preview:
         jedi.settings.cache_directory = os.path.join(
             jedi.settings.cache_directory,
-            cacheprefix + jedi.__version__.replace('.', ''))
+            'custom_v' + jedi.__version__.replace('.', ''))
 
     # remove jedi from path after we import it so it will not be completed
     _sys_path.pop(0)
@@ -686,28 +687,26 @@ def parse_args(prog=sys.argv[0], argv=sys.argv[1:]):
     cmd = ns.pop('cmd')
 
     if cmd == 'custom':
-        cacheprefix = 'custom_v'
         preview = True
     else:
         #release
         assert not cmd
-        cacheprefix = 'v'
         preview = False
 
     pathentry = ns.pop('jedipath')
     modules = ns.pop('modules')
 
-    #return cmd, ns
-    return pathentry, cacheprefix, modules or '', preview
+    #return cmd, ns, preview
+    return pathentry, modules or '', preview
 
 
-def main(pathentry, cacheprefix, modules, preview=False,
+def main(pathentry, modules, preview=False,
          _set_up_jedi=set_up_jedi,
          _watch=watch):
-    jedi = _set_up_jedi(pathentry, cacheprefix, modules, preview=preview)
+    jedi = _set_up_jedi(pathentry, modules, preview=preview)
     _watch(jedi, preview=preview)
 
 
 if __name__ == '__main__':
-    pathentry, cacheprefix, modules, preview = parse_args()
-    main(pathentry, cacheprefix, modules, preview)
+    pathentry, modules, preview = parse_args()
+    main(pathentry, modules, preview)
