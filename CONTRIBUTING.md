@@ -12,19 +12,36 @@
 
 [For contributing to the [Microsoft Python Language Server](https://github.com/Microsoft/python-language-server) see its own repo; for [debugpy](https://github.com/microsoft/debugpy) see its own repo]
 
-## Contributing a Pull Request
+
+## Welcome!
+
+This project welcomes contributions from the community.  This includes
+bug reports, feature requests, and pull requests.  In this document we
+focus mostly on code contibution (through pull requests) and on the
+project's development process.  We also cover how the extension is
+released.
+
+
+## Getting Started
+
+Note that local development of the extension can be done either using
+VS Code or manually from your shell.  We recommend using VS Code.
+The two approaches are reflected in this section and throughout
+this document.
 
 ### Prerequisites
 
-1. [Node.js](https://nodejs.org/) 12.x
-1. [Python](https://www.python.org/) 2.7 or later
-1. Windows, macOS, or Linux
-1. [Visual Studio Code](https://code.visualstudio.com/)
-1. The following VS Code extensions:
+* [Node.js](https://nodejs.org/) 12.x
+* [Python](https://www.python.org/) 3.6 or later (or 2.7)
+* Windows, macOS, or Linux
+
+If using VS Code:
+
+* [Visual Studio Code](https://code.visualstudio.com/)
+* The following VS Code extensions:
     - [TSLint](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-typescript-tslint-plugin)
     - [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
     - [EditorConfig for VS Code](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
-1. Have an issue which has a "needs PR" label (feel free to indicate you would like to provide a PR for the issue so others don't work on it as well)
 
 ### Setup
 
@@ -44,6 +61,28 @@ npx gulp installPythonLibs
 ```
 
 If you see warnings that `The engine "vscode" appears to be invalid.`, you can ignore these.
+
+
+## Contributing a Pull Request
+
+At that point you are ready to make a PR:
+
+1. Have an issue which has a "needs PR" label (feel free to indicate you would like to provide a PR for the issue so others don't work on it as well)
+1. create a local branch
+1. make your changes
+1. run tests locally
+1. (optionally) compile a .vsix and try it out locally
+1. create a PR
+
+Once your PR exists, we'll cycle through the following steps, possibly
+several times, until the PR is approved and merged:
+
+1. get a review
+1. address any review comments and run tests locally again
+1. make sure all "checks" on the PR pass
+
+Once the PR is approved and all checks pass then your PR is approved
+and merged.  Congratulations!
 
 ### Incremental Build
 
