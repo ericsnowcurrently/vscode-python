@@ -12,7 +12,7 @@
 
 [For contributing to the [Microsoft Python Language Server](https://github.com/Microsoft/python-language-server) see its own repo; for [debugpy](https://github.com/microsoft/debugpy) see its own repo]
 
-## Contributing a pull request
+## Contributing a Pull Request
 
 ### Prerequisites
 
@@ -193,7 +193,7 @@ We have CI tests to ensure the code committed will adhere to the above coding st
 
 Messages displayed to the user must be localized using/created constants from/in the [localize.ts](https://github.com/Microsoft/vscode-python/blob/master/src/client/common/utils/localize.ts) file.
 
-## Development process
+## Development Process
 
 To effectively contribute to this extension, it helps to know how its
 development process works. That way you know not only why the
