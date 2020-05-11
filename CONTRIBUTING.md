@@ -6,11 +6,11 @@
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | [![Build Status](https://dev.azure.com/ms/vscode-python/_apis/build/status/CI?branchName=release)](https://dev.azure.com/ms/vscode-python/_build/latest?definitionId=88&branchName=release) | [![Build Status](https://dev.azure.com/ms/vscode-python/_apis/build/status/CI?branchName=master)](https://dev.azure.com/ms/vscode-python/_build/latest?definitionId=88&branchName=master) | [![Build Status](https://dev.azure.com/ms/vscode-python/_apis/build/status/Nightly%20Build?branchName=master)](https://dev.azure.com/ms/vscode-python/_build/latest?definitionId=85&branchName=master) | [![codecov](https://codecov.io/gh/microsoft/vscode-python/branch/master/graph/badge.svg)](https://codecov.io/gh/microsoft/vscode-python) |
 
-[[Development build](https://pvsc.blob.core.windows.net/extension-builds/ms-python-insiders.vsix)]
+\[[Development build](https://pvsc.blob.core.windows.net/extension-builds/ms-python-insiders.vsix)]
 
 ---
 
-[For contributing to the [Microsoft Python Language Server](https://github.com/Microsoft/python-language-server) see its own repo; for [debugpy](https://github.com/microsoft/debugpy) see its own repo]
+\[For contributing to the [Microsoft Python Language Server](https://github.com/Microsoft/python-language-server) see its own repo; for [debugpy](https://github.com/microsoft/debugpy) see its own repo]
 
 
 ## Welcome!
