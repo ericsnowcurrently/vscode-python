@@ -85,6 +85,104 @@ several times, until the PR is approved and merged:
 Once the PR is approved and all checks pass then your PR will be merged.
 Congratulations!
 
+More information about some of those steps is found here in later
+sections.
+
+
+## High-level Project Information
+
+Before we get into the details of the development and project workflow,
+there are a number of things about which all contributors should
+be aware.
+
+### Coding Standards
+
+Information on our coding standards can be found
+[here](https://github.com/Microsoft/vscode-python/blob/master/CODING_STANDARDS.md).
+We have CI tests to ensure the code committed will adhere to those coding standards.
+
+Messages displayed to the user must be localized using/created constants from/in the
+[localize.ts](https://github.com/Microsoft/vscode-python/blob/master/src/client/common/utils/localize.ts)
+file.
+
+### Development Process
+
+To effectively contribute to this extension, it helps to know how its
+development process works. That way you know not only why the
+project maintainers do what they do to keep this project running
+smoothly, but it allows you to help out by noticing when a step is
+missed or to learn in case someday you become a project maintainer as
+well!
+
+### Helping others
+
+First and foremost, we try to be helpful to users of the extension.
+We monitor
+[Stack Overflow questions](https://stackoverflow.com/questions/tagged/visual-studio-code+python)
+to see where people might need help. We also try to respond to all
+issues in some way in a timely manner (typically in less than one
+business day, definitely no more than a week). We also answer
+questions that reach us in other ways, e.g. Twitter.
+
+For pull requests, we aim to review any externally contributed PR no later
+than the next sprint from when it was submitted (see
+[Release Cycle](#release-cycle) below for our sprint schedule).
+
+### Pull requests
+
+Key details that all pull requests are expected to handle should be
+in the [pull request template](https://github.com/Microsoft/vscode-python/blob/master/.github/PULL_REQUEST_TEMPLATE.md).
+We do expect CI to be passing for a pull request before we will consider merging it.
+
+### Versioning
+
+Starting in 2018, the extension switched to
+[calendar versioning](http://calver.org/) since the extension
+auto-updates and thus there is no need to track its version
+number for backwards-compatibility. In 2020, the extension switched to
+having the the major version be the year of release, the minor version the
+release count for that year, and the build number is a number that increments
+for every build.
+For example the first release made in 2020 is `2020.1.<build number>`.
+
+### Release cycle
+
+Planning is done as two week sprints. We start a sprint every other Wednesday.
+You can look at the newest
+[milestone](https://github.com/Microsoft/vscode-python/milestones) to see when
+the current sprint ends. All
+[P0](https://github.com/Microsoft/vscode-python/labels/P0) issues are expected
+to be fixed in the current sprint, else the next release will be blocked.
+[P1](https://github.com/Microsoft/vscode-python/labels/P1) issues are a
+top-priority and we try to close before the next release. All other issues are
+considered best-effort for that sprint.
+
+The extension aims to do a new release every four weeks (two sprints). A
+[release plan](https://github.com/Microsoft/vscode-python/labels/release%20plan)
+is created for each release to help track anything that requires a
+person to do (long-term this project aims to automate as much of the
+development process as possible).
+
+All development is actively done in the `master` branch of the
+repository. This allows us to have a
+[development build](#development-build) which is expected to be stable at
+all times. Once we reach a release candidate, it becomes
+our [release branch](https://github.com/microsoft/vscode-python/branches).
+At that point only what is in the release branch will make it into the next
+release.
+
+
+## Developing the Extension
+
+Here we cover practical details that will help you make effective
+changes to the Python extension.
+
+### Code Hygiene
+
+We have CI tests to ensure the code committed will adhere to the above coding standards. \*You can run this locally by executing the command `npx gulp precommit` or use the `precommit` Task.
+
+TBD: git pre-commit hook
+
 ### Incremental Build
 
 Run the `Compile` and `Hygiene` build Tasks from the [Run Build Task...](https://code.visualstudio.com/docs/editor/tasks) command picker (short cut `CTRL+SHIFT+B` or `⇧⌘B`). This will leave build and hygiene tasks running in the background and which will re-run as files are edited and saved. You can see the output from either task in the Terminal panel (use the selector to choose which output to look at).
@@ -226,65 +324,10 @@ Clone the repo into any directory, open that directory in VSCode, and use the `E
 The easiest way to debug the Python Debugger (in our opinion) is to clone this git repo directory into [your](https://code.visualstudio.com/docs/extensions/install-extension#_your-extensions-folder) extensions directory.
 From there use the `Extension + Debugger` launch option.
 
-### Coding Standards
 
-Information on our coding standards can be found [here](https://github.com/Microsoft/vscode-python/blob/master/CODING_STANDARDS.md).
-We have CI tests to ensure the code committed will adhere to the above coding standards. \*You can run this locally by executing the command `npx gulp precommit` or use the `precommit` Task.
+## Triaging Issues
 
-Messages displayed to the user must be localized using/created constants from/in the [localize.ts](https://github.com/Microsoft/vscode-python/blob/master/src/client/common/utils/localize.ts) file.
-
-## Development Process
-
-To effectively contribute to this extension, it helps to know how its
-development process works. That way you know not only why the
-project maintainers do what they do to keep this project running
-smoothly, but it allows you to help out by noticing when a step is
-missed or to learn in case someday you become a project maintainer as
-well!
-
-### Helping others
-
-First and foremost, we try to be helpful to users of the extension.
-We monitor
-[Stack Overflow questions](https://stackoverflow.com/questions/tagged/visual-studio-code+python)
-to see where people might need help. We also try to respond to all
-issues in some way in a timely manner (typically in less than one
-business day, definitely no more than a week). We also answer
-questions that reach us in other ways, e.g. Twitter.
-
-For pull requests, we aim to review any externally contributed PR no later
-than the next sprint from when it was submitted (see
-[Release Cycle](#release-cycle) below for our sprint schedule).
-
-### Release cycle
-
-Planning is done as two week sprints. We start a sprint every other Wednesday.
-You can look at the newest
-[milestone](https://github.com/Microsoft/vscode-python/milestones) to see when
-the current sprint ends. All
-[P0](https://github.com/Microsoft/vscode-python/labels/P0) issues are expected
-to be fixed in the current sprint, else the next release will be blocked.
-[P1](https://github.com/Microsoft/vscode-python/labels/P1) issues are a
-top-priority and we try to close before the next release. All other issues are
-considered best-effort for that sprint.
-
-The extension aims to do a new release every four weeks (two sprints). A
-[release plan](https://github.com/Microsoft/vscode-python/labels/release%20plan)
-is created for each release to help track anything that requires a
-person to do (long-term this project aims to automate as much of the
-development process as possible).
-
-All development is actively done in the `master` branch of the
-repository. This allows us to have a
-[development build](#development-build) which is expected to be stable at
-all times. Once we reach a release candidate, it becomes
-our [release branch](https://github.com/microsoft/vscode-python/branches).
-At that point only what is in the release branch will make it into the next
-release.
-
-### Issue triaging
-
-#### Classifying issues
+### Classifying Issues
 
 To help actively track what stage
 [issues](https://github.com/Microsoft/vscode-python/issues)
@@ -300,36 +343,22 @@ the issue, and what kind of issue it is. (The `feature` label should be `feature
 
 It is also very important to make the title accurate. People often write very brief, quick titles or ones that describe what they think the problem is. By updating the title to be appropriately descriptive for what _you_ think the issue is, you not only make finding older issues easier, but you also help make sure that you and the original reporter agree on what the issue is.
 
-#### Post-classification
+### Post-classification
 
 Once an issue has been appropriately classified, there are two keys ways to help out. One is to go through open issues that
 have a merged fix and verify that the fix did in fact work. The other is to try to fix issues marked as `needs PR`.
 
-### Pull requests
 
-Key details that all pull requests are expected to handle should be
-in the [pull request template](https://github.com/Microsoft/vscode-python/blob/master/.github/PULL_REQUEST_TEMPLATE.md). We do expect CI to be passing for a pull request before we will consider merging it.
-
-### Versioning
-
-Starting in 2018, the extension switched to
-[calendar versioning](http://calver.org/) since the extension
-auto-updates and thus there is no need to track its version
-number for backwards-compatibility. In 2020, the extension switched to
-having the the major version be the year of release, the minor version the
-release count for that year, and the build number is a number that increments
-for every build.
-For example the first release made in 2020 is `2020.1.<build number>`.
-
-## Releasing
+## Releasing the Extension
 
 Overall steps for releasing are covered in the
 [release plan](https://github.com/Microsoft/vscode-python/labels/release%20plan)
 ([template](https://github.com/Microsoft/vscode-python/blob/master/.github/release_plan.md)).
 
-### Building a release
+### Building a Release
 
 To create a release _build_, follow the steps outlined in the [release plan](https://github.com/Microsoft/vscode-python/labels/release%20plan) (which has a [template](https://github.com/Microsoft/vscode-python/blob/master/.github/release_plan.md)).
+
 
 ## Local Build
 
@@ -353,6 +382,7 @@ Steps to build the extension on your machine once you've cloned the repo:
 Resulting in a `ms-python-insiders.vsix` file in your `vscode-python` folder.
 
 ⚠️ If you made changes to `package.json`, run `npm install` (instead of `npm ci`) to update `package-lock.json` and install dependencies all at once.
+
 
 ## Development Build
 
