@@ -65,14 +65,15 @@ If you see warnings that `The engine "vscode" appears to be invalid.`, you can i
 
 ## Contributing a Pull Request
 
-At that point you are ready to make a PR:
+At that point you are ready to contribute:
 
-1. Have an issue which has a "needs PR" label (feel free to indicate you would like to provide a PR for the issue so others don't work on it as well)
+1. find an issue which has a "needs PR" label and leave a message there
+   you are working on a PR (so others don't work on it as well)
 1. create a local branch
 1. make your changes
 1. run tests locally
 1. (optionally) compile a .vsix and try it out locally
-1. create a PR
+1. create a PR (and follow the checklist that shows up there)
 
 Once your PR exists, we'll cycle through the following steps, possibly
 several times, until the PR is approved and merged:
@@ -81,8 +82,8 @@ several times, until the PR is approved and merged:
 1. address any review comments and run tests locally again
 1. make sure all "checks" on the PR pass
 
-Once the PR is approved and all checks pass then your PR is approved
-and merged.  Congratulations!
+Once the PR is approved and all checks pass then your PR will be merged.
+Congratulations!
 
 ### Incremental Build
 
