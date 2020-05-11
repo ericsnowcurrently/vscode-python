@@ -202,6 +202,32 @@ window of Visual Studio Code.
 
 When developing from your shell, they will show up in the command output.
 
+### Incremental Build
+
+Run the `Compile` and `Hygiene` build Tasks from the
+[Run Build Task...](https://code.visualstudio.com/docs/editor/tasks)
+command picker (short cut `CTRL+SHIFT+B` or `⇧⌘B`). This will leave
+build and hygiene tasks running in the background and which will re-run
+as files are edited and saved. You can see the output from either task
+in the Terminal panel (use the selector to choose which output to look
+at).
+
+You can also compile from the command-line. For a full compile you can use:
+
+```shell
+npx gulp prePublishNonBundle
+```
+
+For incremental builds you can use the following commands depending on your needs:
+
+```shell
+npm run compile
+npm run compile-webviews-watch # For data science (React Code)
+```
+
+Sometimes you will need to run `npm run clean` and even `rm -r out`.
+This is especially true if you have added or removed files.
+
 ### Code Hygiene
 
 As mentioned above, we have a CI check to verify that every PR follows
@@ -227,34 +253,20 @@ the following to `.git/hooks/pre-commit`:
 npx gulp precommit
 ```
 
-### Incremental Build
-
-Run the `Compile` and `Hygiene` build Tasks from the [Run Build Task...](https://code.visualstudio.com/docs/editor/tasks) command picker (short cut `CTRL+SHIFT+B` or `⇧⌘B`). This will leave build and hygiene tasks running in the background and which will re-run as files are edited and saved. You can see the output from either task in the Terminal panel (use the selector to choose which output to look at).
-
-You can also compile from the command-line. For a full compile you can use:
-
-```shell
-npx gulp prePublishNonBundle
-```
-
-For incremental builds you can use the following commands depending on your needs:
-
-```shell
-npm run compile
-npm run compile-webviews-watch # For data science (React Code)
-```
-
-Sometimes you will need to run `npm run clean` and even `rm -r out`.
-This is especially true if you have added or removed files.
-
-### Run dev build and validate your changes
+### Run a Dev Build and Validate Your Changes
 
 To test changes, open the `vscode-python` folder in VSCode, and select the workspace titled `vscode`.
 Then, open the debug panel by clicking the `Run and Debug` icon on the sidebar, select the `Extension`
 option from the top menu, and click start. A new window will launch with the title
 `[Extension Development Host]`.
 
-### Running Unit Tests
+If developing from a shell, follow the instructions in "Local Build"
+below to get a .vsix and then install the extension in VS Code from
+that file.
+
+### Running Tests
+
+#### Unit Tests
 
 Note: Unit tests are those in files with extension `.unit.test.ts`.
 
@@ -282,7 +294,7 @@ Alter the `launch.json` file in the `"Debug Unit Tests"` section by setting the 
 
 ...this will only run the suite with the tests you care about during a test run (be sure to set the debugger to run the `Debug Unit Tests` launcher).
 
-### Running Functional Tests
+#### Functional Tests
 
 Functional tests are those in files with extension `.functional.test.ts`.
 These tests are similar to system tests in scope, but are run like unit tests.
@@ -292,7 +304,7 @@ You can run functional tests in a similar way to that for unit tests:
 -   via the "Functional Tests" launch option, or
 -   on the command line via `npm run test:functional`
 
-### Running System Tests
+#### "System" Tests
 
 Note: System tests are those in files with extension `.test*.ts` but which are neither `.functional.test.ts` nor `.unit.test.ts`.
 
@@ -339,7 +351,7 @@ const grep = '[The suite name of your *test.ts file]'; // IS_CI_SERVER &&...
 
 And be sure to escape any grep-sensitive characters in your suite name (and to remove the change from src/test/index.ts before you submit).
 
-### Testing Python Scripts
+#### Python Scripts
 
 The extension has a number of scripts in ./pythonFiles. Tests for these
 scripts are found in ./pythonFiles/tests. To run those tests:
