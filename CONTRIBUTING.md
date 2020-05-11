@@ -177,11 +177,55 @@ release.
 Here we cover practical details that will help you make effective
 changes to the Python extension.
 
+### Pre-defined "Tasks"
+
+There are a number of development operations that you may perform
+somewhat frequently while working on the extension.  Most of them have
+been codified as scripts (see `"scripts"` in `package.json`), VS Code
+"tasks" (see `.vscode/tasks.json`), or gulp tasks (see `gulpfile.ts`).
+To run a task from...
+
+...VS Code:
+
+* open the "Terminal" menu
+* click on `Run Task...`
+* select the desired task
+
+...your shell:
+
+* `npx gulp <TASK>` (gulp tasks only)
+
+### Code Errors and Warnings
+
+TypeScript errors and warnings will be displayed in the `Problems`
+window of Visual Studio Code.
+
+When developing from your shell, they will show up in the command output.
+
 ### Code Hygiene
 
-We have CI tests to ensure the code committed will adhere to the above coding standards. \*You can run this locally by executing the command `npx gulp precommit` or use the `precommit` Task.
+As mentioned above, we have a CI check to verify that every PR follows
+the project's coding standards.  You can run this check locally:
 
-TBD: git pre-commit hook
+VS Code:
+
+* use the `precommit` task
+
+shell:
+
+* run `npx gulp precommit`
+
+If you are using VS Code then it will identify hygiene problems as you
+go, both with squiggles and in the "Problems" panel.
+
+When developing from your shell, it can be helpful to add a git
+pre-commit hook to run the checks.  That means putting something like
+the following to `.git/hooks/pre-commit`:
+
+```shell
+#!/bin/sh
+npx gulp precommit
+```
 
 ### Incremental Build
 
@@ -202,10 +246,6 @@ npm run compile-webviews-watch # For data science (React Code)
 
 Sometimes you will need to run `npm run clean` and even `rm -r out`.
 This is especially true if you have added or removed files.
-
-### Errors and Warnings
-
-TypeScript errors and warnings will be displayed in the `Problems` window of Visual Studio Code.
 
 ### Run dev build and validate your changes
 
