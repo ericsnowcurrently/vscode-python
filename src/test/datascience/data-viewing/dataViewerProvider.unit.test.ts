@@ -14,10 +14,9 @@ import { DataViewerDependencyService } from '../../../client/datascience/data-vi
 import { DataViewerProvider } from '../../../client/datascience/data-viewing/dataViewerProvider';
 import { JupyterNotebookBase } from '../../../client/datascience/jupyter/jupyterNotebook';
 import { IDataViewer, IJupyterVariable, INotebook } from '../../../client/datascience/types';
-import { PythonInterpreter } from '../../../client/interpreter/contracts';
 import { ServiceContainer } from '../../../client/ioc/container';
 import { IServiceContainer } from '../../../client/ioc/types';
-import { InterpreterType } from '../../../client/pythonEnvironments/discovery/types';
+import { InterpreterType, PythonInterpreter } from '../../../client/pythonEnvironments/discovery/types';
 
 suite('Data Science - DataViewerProvider', () => {
     let dataViewerProvider: DataViewerProvider;

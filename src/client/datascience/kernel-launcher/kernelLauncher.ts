@@ -8,7 +8,7 @@ import { promisify } from 'util';
 import * as uuid from 'uuid/v4';
 import { IProcessServiceFactory } from '../../common/process/types';
 import { Resource } from '../../common/types';
-import { PythonInterpreter } from '../../interpreter/contracts';
+import { PythonInterpreter } from '../../pythonEnvironments/discovery/types';
 import { captureTelemetry } from '../../telemetry';
 import { Telemetry } from '../constants';
 import { IJupyterKernelSpec } from '../types';
