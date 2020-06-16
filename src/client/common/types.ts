@@ -377,7 +377,7 @@ export interface IDataScienceSettings {
     enablePlotViewer?: boolean;
     codeLenses?: string;
     debugCodeLenses?: string;
-    ptvsdDistPath?: string;
+    debugpyDistPath?: string;
     stopOnFirstLineWhileDebugging?: boolean;
     textOutputLimit?: number;
     magicCommandsAsComments?: boolean;
