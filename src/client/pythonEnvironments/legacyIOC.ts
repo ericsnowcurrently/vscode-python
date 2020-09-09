@@ -146,15 +146,6 @@ class ComponentAdapter implements IComponentAdapter {
 
     // IInterpreterService
 
-    public get hasInterpreters(): Promise<boolean> {
-        const iterator = this.api.iterEnvs();
-        return iterator.next().then((res) => {
-            return !res.done;
-        });
-    }
-
-    //public async getInterpreters(_resource?: vscode.Uri, _options?: GetInterpreterOptions): Promise<PythonEnvironment[]>;
-
     public async getInterpreterDetails(pythonPath: string, _resource?: vscode.Uri): Promise<undefined | PythonEnvironment> {
         const env = await this.api.resolveEnv(pythonPath);
         if (env === undefined) {
@@ -199,6 +190,13 @@ class ComponentAdapter implements IComponentAdapter {
     }
 
     // IInterpreterLocatorService
+
+    public get hasInterpreters(): Promise<boolean> {
+        const iterator = this.api.iterEnvs();
+        return iterator.next().then((res) => {
+            return !res.done;
+        });
+    }
 
     public async getInterpreters(
         resource?: vscode.Uri,

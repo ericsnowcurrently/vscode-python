@@ -12,6 +12,7 @@ import {
     CONDA_ENV_SERVICE,
     CURRENT_PATH_SERVICE,
     GLOBAL_VIRTUAL_ENV_SERVICE,
+    IComponentAdapter,
     IInterpreterLocatorHelper,
     IInterpreterLocatorService,
     KNOWN_PATH_SERVICE,
@@ -171,6 +172,12 @@ function matchURI(uri: Uri, ...candidates: Uri[]): boolean {
     return false;
 }
 
+// The parts of IComponentAdapter used here.
+interface IComponent {
+    hasInterpreters: Promise<boolean>;
+    getInterpreters(resource?: Uri, options?: GetInterpreterLocatorOptions): Promise<PythonEnvironment[]>;
+}
+
 /**
  * Facilitates locating Python interpreters.
  */
@@ -186,7 +193,12 @@ export class PythonInterpreterLocatorService implements IInterpreterLocatorServi
 
     private readonly _hasInterpreters: Deferred<boolean>;
 
-    constructor(@inject(IServiceContainer) private serviceContainer: IServiceContainer) {
+    constructor(
+        @inject(IServiceContainer) private serviceContainer: IServiceContainer,
+        @inject(IComponentAdapter) private readonly pyenvs: IComponent,
+        // We will switch this on later.
+        private readonly useComponent=false
+    ) {
         this._hasInterpreters = createDeferred<boolean>();
         serviceContainer.get<Disposable[]>(IDisposableRegistry).push(this);
         this.platform = serviceContainer.get<IPlatformService>(IPlatformService);
@@ -207,6 +219,9 @@ export class PythonInterpreterLocatorService implements IInterpreterLocatorServi
     }
 
     public get hasInterpreters(): Promise<boolean> {
+        if (this.useComponent) {
+            return this.pyenvs.hasInterpreters;
+        }
         return this._hasInterpreters.completed ? this._hasInterpreters.promise : Promise.resolve(false);
     }
 
@@ -227,6 +242,9 @@ export class PythonInterpreterLocatorService implements IInterpreterLocatorServi
      */
     @traceDecorators.verbose('Get Interpreters')
     public async getInterpreters(resource?: Uri, options?: GetInterpreterLocatorOptions): Promise<PythonEnvironment[]> {
+        if (this.useComponent) {
+            return this.pyenvs.getInterpreters(resource, options);
+        }
         const locators = this.getLocators(options);
         const promises = locators.map(async (provider) => provider.getInterpreters(resource));
         locators.forEach((locator) => {

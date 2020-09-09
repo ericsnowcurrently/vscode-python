@@ -19,13 +19,22 @@ import { ServiceContainer } from '../../../../client/ioc/container';
 import { IServiceContainer } from '../../../../client/ioc/types';
 import { WindowsStoreInterpreter } from '../../../../client/pythonEnvironments/discovery/locators/services/windowsStoreInterpreter';
 
+// We use this for mocking.
+class ComponentAdapter {
+    public async isWindowsStoreInterpreter(_pythonPath: string): Promise<boolean | undefined> {
+        return undefined;
+    }
+}
+
 suite('Interpreters - Windows Store Interpreter', () => {
     let windowsStoreInterpreter: WindowsStoreInterpreter;
+    let pyenvs: ComponentAdapter;
     let fs: IFileSystem;
     let persistanceStateFactory: IPersistentStateFactory;
     let executionFactory: IPythonExecutionFactory;
     let serviceContainer: IServiceContainer;
     setup(() => {
+        pyenvs = mock(ComponentAdapter);
         fs = mock(FileSystem);
         persistanceStateFactory = mock(PersistentStateFactory);
         executionFactory = mock(PythonExecutionFactory);
@@ -37,6 +46,7 @@ suite('Interpreters - Windows Store Interpreter', () => {
             instance(serviceContainer),
             instance(persistanceStateFactory),
             instance(fs),
+            instance(pyenvs)
         );
     });
     const windowsStoreInterpreters = [
