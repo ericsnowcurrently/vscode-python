@@ -31,8 +31,8 @@ import { IPipEnvServiceHelper, IPythonInPathCommandProvider } from '../../client
 import { ServiceContainer } from '../../client/ioc/container';
 import { ServiceManager } from '../../client/ioc/serviceManager';
 import { PythonEnvironments } from '../../client/pythonEnvironments';
-import { PythonInterpreterLocatorService } from '../../client/pythonEnvironments/discovery/locators';
 import { InterpreterLocatorHelper } from '../../client/pythonEnvironments/discovery/locators/helpers';
+import { PythonInterpreterLocatorService } from '../../client/pythonEnvironments/discovery/locators/legacyService';
 import { InterpreterLocatorProgressService } from '../../client/pythonEnvironments/discovery/locators/progressService';
 import { CondaEnvFileService } from '../../client/pythonEnvironments/discovery/locators/services/condaEnvFileService';
 import { CondaEnvService } from '../../client/pythonEnvironments/discovery/locators/services/condaEnvService';
