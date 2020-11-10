@@ -5,6 +5,7 @@ import { cloneDeep } from 'lodash';
 import * as path from 'path';
 import { Architecture } from '../../../common/utils/platform';
 import { arePathsSame } from '../../common/externalDependencies';
+import { getPrioritizedEnvKinds } from './envKind';
 import { parseExeVersion } from './executable';
 import { mergeBuilds } from './pythonBuild';
 import { mergeDistros } from './pythonDistro';
@@ -269,48 +270,6 @@ export function areSameEnv(
         }
     }
     return false;
-}
-
-/**
- * Gets a prioritized list of environment types for identification.
- * @returns {PythonEnvKind[]} : List of environments ordered by identification priority
- *
- * Remarks: This is the order of detection based on how the various distributions and tools
- * configure the environment, and the fall back for identification.
- * Top level we have the following environment types, since they leave a unique signature
- * in the environment or * use a unique path for the environments they create.
- *  1. Conda
- *  2. Windows Store
- *  3. PipEnv
- *  4. Pyenv
- *  5. Poetry
- *
- * Next level we have the following virtual environment tools. The are here because they
- * are consumed by the tools above, and can also be used independently.
- *  1. venv
- *  2. virtualenvwrapper
- *  3. virtualenv
- *
- * Last category is globally installed python, or system python.
- */
-export function getPrioritizedEnvKinds(): PythonEnvKind[] {
-    return [
-        PythonEnvKind.CondaBase,
-        PythonEnvKind.Conda,
-        PythonEnvKind.WindowsStore,
-        PythonEnvKind.Pipenv,
-        PythonEnvKind.Pyenv,
-        PythonEnvKind.Poetry,
-        PythonEnvKind.Venv,
-        PythonEnvKind.VirtualEnvWrapper,
-        PythonEnvKind.VirtualEnv,
-        PythonEnvKind.OtherVirtual,
-        PythonEnvKind.OtherGlobal,
-        PythonEnvKind.MacDefault,
-        PythonEnvKind.System,
-        PythonEnvKind.Custom,
-        PythonEnvKind.Unknown,
-    ];
 }
 
 /**
