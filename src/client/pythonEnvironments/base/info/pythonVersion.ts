@@ -4,12 +4,15 @@
 import { cloneDeep } from 'lodash';
 import {
     compareVersions as compareBasicVersions,
+    getVersionString as getBasicVersionString,
     EMPTY_VERSION,
     isVersionInfoEmpty,
+    normalizeVersionInfo,
     parseBasicVersionInfo,
+    validateVersionInfo,
 } from '../../../common/utils/version';
 
-import { PythonReleaseLevel, PythonVersion } from '.';
+import { PythonReleaseLevel, PythonVersion, PythonVersionRelease } from '.';
 
 /**
  * Convert the given string into the corresponding Python version object.
@@ -20,14 +23,20 @@ import { PythonReleaseLevel, PythonVersion } from '.';
  *   3.9.0b2
  *   3.9.0rc1
  *
- * Does not parse:
+ * Does not fully parse:
  *   3.9.0.final.0
  */
 export function parseVersion(versionStr: string): PythonVersion {
     const [version, after] = parseBasicVersion(versionStr);
-    const match = after.match(/^(a|b|rc)(\d+)$/);
-    if (match) {
-        const [, levelStr, serialStr] = match;
+    const [release] = parseRelease(after);
+    version.release = release;
+    return version;
+}
+
+function parseRelease(text: string): [PythonVersionRelease | undefined, string] {
+    const match1 = text.match(/^(a|b|rc)(\d+)(.*)$/);
+    if (match1) {
+        const [, levelStr, serialStr, after1] = match1;
         let level: PythonReleaseLevel;
         if (levelStr === 'a') {
             level = PythonReleaseLevel.Alpha;
@@ -36,14 +45,54 @@ export function parseVersion(versionStr: string): PythonVersion {
         } else if (levelStr === 'rc') {
             level = PythonReleaseLevel.Candidate;
         } else {
-            throw Error('unreachable!');
+            throw Error('not implemented');
         }
-        version.release = {
+        const release1 = {
             level,
             serial: parseInt(serialStr, 10),
         };
+        return [release1, after1];
     }
-    return version;
+
+    // ^
+    // (?:
+    //   (-final)
+    //   |
+    //   (?:
+    //     (-alpha)
+    //     |
+    //     (-beta)
+    //     |
+    //     (-candidate)
+    //   )
+    //   (0|[1-9]\d*)
+    // )
+    // (.*)
+    // $
+    const match2 = text.match(/^(?:(-final)|(?:(-alpha)|(-beta)|(-candidate))(0|[1-9]\d*))(.*)$/);
+    if (match2) {
+        // Ignore the first element (the full match).
+        const [, fin, alpha, beta, rc, serialStr2, after2] = match2;
+        let level: PythonReleaseLevel;
+        if (fin) {
+            level = PythonReleaseLevel.Final;
+        } else if (rc) {
+            level = PythonReleaseLevel.Candidate;
+        } else if (beta) {
+            level = PythonReleaseLevel.Beta;
+        } else if (alpha) {
+            level = PythonReleaseLevel.Alpha;
+        } else {
+            throw Error('not implemented');
+        }
+        const release2 = {
+            level,
+            serial: serialStr2 ? parseInt(serialStr2, 10) : 0
+        };
+        return [release2, after2];
+    }
+
+    return [undefined, text];
 }
 
 /**
@@ -78,6 +127,114 @@ export function isVersionEmpty(version: PythonVersion): boolean {
     // We really only care the `version.major` is -1.  However, using
     // generic util is better in the long run.
     return isVersionInfoEmpty(version);
+}
+
+/**
+ * Make an as-is (deep) copy of the given info.
+ */
+export function copyVersion(info: PythonVersion): PythonVersion {
+    const copied = { ...info };
+    if (copied.release !== undefined) {
+        copied.release = {
+            level: copied.release.level,
+            serial: copied.release.serial
+        };
+    }
+    return copied;
+}
+
+/**
+ * Make a copy and set all the properties properly.
+ */
+export function normalizeVersion(info: PythonVersion): PythonVersion {
+    const norm = { ...info, ...normalizeVersionInfo(info) };
+    if (norm.release !== undefined) {
+        norm.release = normalizeRelease(norm.release);
+    }
+    if (!norm.sysVersion || norm.sysVersion === '') {
+        norm.sysVersion = undefined;
+    }
+    return norm;
+}
+
+/**
+ * Make a copy and set all the properties properly.
+ */
+function normalizeRelease(info: PythonVersionRelease): PythonVersionRelease {
+    const norm = { ...info };
+    if (!norm.serial || norm.serial < 0) {
+        norm.serial = 0;
+    }
+    if (!norm.level || (norm.level as string) === '') {
+        norm.level = PythonReleaseLevel.Final;
+    } else if ((norm.level as string) === 'c' || (norm.level as string) === 'rc') {
+        norm.level = PythonReleaseLevel.Candidate;
+    } else if ((norm.level as string) === 'b') {
+        norm.level = PythonReleaseLevel.Beta;
+    } else if ((norm.level as string) === 'a') {
+        norm.level = PythonReleaseLevel.Alpha;
+    }
+    return norm;
+}
+
+/**
+ * Fail if any properties are not set properly.
+ *
+ * Optional properties that are not set are ignored.
+ *
+ * This assumes that the info has already been normalized.
+ */
+export function validateVersion(info: PythonVersion): void {
+    validateVersionInfo(info);
+    if (info.release !== undefined) {
+        validateRelease(info.release);
+    }
+}
+
+/**
+ * Fail if any properties are not set properly.
+ *
+ * Optional properties that are not set are ignored.
+ *
+ * This assumes that the info has already been normalized.
+ */
+function validateRelease(info: PythonVersionRelease): void {
+    const supportedLevels = [
+        PythonReleaseLevel.Alpha,
+        PythonReleaseLevel.Beta,
+        PythonReleaseLevel.Candidate,
+        PythonReleaseLevel.Final,
+    ];
+    if (!supportedLevels.includes(info.level)) {
+        throw Error(`unsupported Python release level "${info.level}"`);
+    }
+
+    if (info.level === PythonReleaseLevel.Final) {
+        if (info.serial !== 0) {
+            throw Error(`invalid serial ${info.serial} for final release`);
+        }
+    }
+}
+
+/**
+ * Convert the info to a simple string.
+ */
+export function getShortVersionString(ver: PythonVersion): string {
+    const verStr = getBasicVersionString(ver);
+    if (ver.release === undefined) {
+        return verStr;
+    }
+    if (ver.release.level === PythonReleaseLevel.Final) {
+        return verStr;
+    } else if (ver.release.level === PythonReleaseLevel.Candidate) {
+        return `${verStr}rc${ver.release.serial}`;
+    } else if (ver.release.level === PythonReleaseLevel.Beta) {
+        return `${verStr}b${ver.release.serial}`;
+    } else if (ver.release.level === PythonReleaseLevel.Alpha) {
+        return `${verStr}a${ver.release.serial}`;
+    } else {
+        throw Error(`unsupported release level ${ver.release.level}`);
+    }
 }
 
 /**
