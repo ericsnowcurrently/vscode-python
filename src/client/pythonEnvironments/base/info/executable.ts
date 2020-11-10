@@ -3,6 +3,7 @@
 
 import * as path from 'path';
 import { traceError } from '../../../common/logger';
+import { normalizeFilename } from '../../../common/utils/filesystem';
 import { getOSType, OSType } from '../../../common/utils/platform';
 import {
     areSimilarVersions,
@@ -11,12 +12,60 @@ import {
     parseVersion,
 } from './pythonVersion';
 
-import { PythonVersion } from '.';
+import { FileInfo, PythonEnvInfo, PythonExecutableInfo, PythonVersion } from '.';
+
+/**
+ * Determine the corresponding Python executable filename, if any.
+ */
+export function getEnvExecutable(env: string | Partial<PythonEnvInfo>): string {
+    const executable = typeof env === 'string'
+        ? env
+        : env.executable?.filename || '';
+    if (executable === '') {
+        return '';
+    }
+    return normalizeFilename(executable);
+}
+
+/**
+ * Make an as-is (deep) copy of the given info.
+ */
+export function copyExecutable(info: PythonExecutableInfo): PythonExecutableInfo {
+    return { ...info };
+}
+
+/**
+ * Make a copy and set all the properties properly.
+ */
+export function normalizeExecutable(info: PythonExecutableInfo): PythonExecutableInfo {
+    const norm = { ...info };
+    if (!norm.filename) {
+        norm.filename = '';
+    }
+    if (!norm.sysPrefix) {
+        norm.sysPrefix = '';
+    }
+    return norm;
+}
+
+/**
+ * Fail if any properties are not set properly.
+ *
+ * Optional properties that are not set are ignored.
+ *
+ * This assumes that the info has already been normalized.
+ */
+export function validateExecutable(info: PythonExecutableInfo) {
+    if (info.filename === '') {
+        throw Error('missing executable filename');
+    }
+    // info.sysPrefix can be empty.
+}
 
 /**
  * Determine a best-effort Python version based on the given filename.
  */
-export function parseExeVersion(
+export function parseExeVersion( // AKA "inferFromExecutable"
     filename: string,
     opts: {
         ignoreErrors?: boolean;
@@ -100,4 +149,64 @@ function walkExecutablePath(filename: string): PythonVersion {
     }
 
     return best;
+}
+
+/**
+ * Decide if the two sets of executables for the given envs are the same.
+ */
+export function haveSameExecutables(
+    envs1: PythonEnvInfo[],
+    envs2: PythonEnvInfo[],
+): boolean {
+    if (envs1.length !== envs2.length) {
+        return false;
+    }
+    const executables1 = envs1.map(getEnvExecutable);
+    const executables2 = envs2.map(getEnvExecutable);
+    if (!executables2.every((e) => executables1.includes(e))) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Make a copy of "executable" and fill in empty properties using "other."
+ */
+export function mergeExecutables(
+    executable: PythonExecutableInfo,
+    other: PythonExecutableInfo,
+): PythonExecutableInfo {
+    const merged: PythonExecutableInfo = {
+        ...mergeFileInfo(executable, other),
+        sysPrefix: executable.sysPrefix,
+    };
+
+    if (executable.sysPrefix === '') {
+        merged.sysPrefix = other.sysPrefix;
+    }
+
+    return merged;
+}
+
+function mergeFileInfo(file: FileInfo, other: FileInfo): FileInfo {
+    const merged: FileInfo = {
+        filename: file.filename,
+        ctime: file.ctime,
+        mtime: file.mtime,
+    };
+
+    if (file.filename === '') {
+        merged.filename = other.filename;
+    }
+
+    if (merged.filename === other.filename || other.filename === '') {
+        if (file.ctime < 0 && other.ctime > -1) {
+            merged.ctime = other.ctime;
+        }
+        if (file.mtime < 0 && other.mtime > -1) {
+            merged.mtime = other.mtime;
+        }
+    }
+
+    return merged;
 }

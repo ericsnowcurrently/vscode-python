@@ -3,13 +3,12 @@
 
 import { cloneDeep } from 'lodash';
 import * as path from 'path';
-import { normalizeFilename } from '../../../common/utils/filesystem';
 import { Architecture } from '../../../common/utils/platform';
 import { arePathsSame } from '../../common/externalDependencies';
 import { parseExeVersion } from './executable';
 import { mergeBuilds } from './pythonBuild';
 import { mergeDistros } from './pythonDistro';
-import { mergeExecutables } from './pythonExecutable';
+import { getEnvExecutable, mergeExecutables } from './executable';
 import {
     areIdenticalVersion,
     areSimilarVersions,
@@ -108,19 +107,6 @@ function updateEnv(env: PythonEnvInfo, updates: {
     if (updates.version !== undefined) {
         env.version = updates.version;
     }
-}
-
-/**
- * Determine the corresponding Python executable filename, if any.
- */
-export function getEnvExecutable(env: string | Partial<PythonEnvInfo>): string {
-    const executable = typeof env === 'string'
-        ? env
-        : env.executable?.filename || '';
-    if (executable === '') {
-        return '';
-    }
-    return normalizeFilename(executable);
 }
 
 /**
@@ -238,24 +224,6 @@ export function getEnvMatcher(
         return arePathsSame(executable, candidate.executable.filename);
     }
     return matchEnv;
-}
-
-/**
- * Decide if the two sets of executables for the given envs are the same.
- */
-export function haveSameExecutables(
-    envs1: PythonEnvInfo[],
-    envs2: PythonEnvInfo[],
-): boolean {
-    if (envs1.length !== envs2.length) {
-        return false;
-    }
-    const executables1 = envs1.map(getEnvExecutable);
-    const executables2 = envs2.map(getEnvExecutable);
-    if (!executables2.every((e) => executables1.includes(e))) {
-        return false;
-    }
-    return true;
 }
 
 /**

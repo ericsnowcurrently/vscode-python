@@ -6,11 +6,11 @@
 
 import { cloneDeep } from 'lodash';
 import { PythonEnvInfo } from './info';
+import { areSameEnv } from './info/env';
 import {
-    areSameEnv,
     getEnvExecutable,
     haveSameExecutables,
-} from './info/env';
+} from './info/executable';
 
 /**
  * A simple in-memory store of Python envs.
