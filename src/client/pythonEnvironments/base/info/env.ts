@@ -3,71 +3,120 @@
 
 import { cloneDeep } from 'lodash';
 import * as path from 'path';
+import { getArchitectureDisplayName } from '../../../common/platform/registry';
+import { DeepReadonly } from '../../../common/utils/misc';
 import { Architecture } from '../../../common/utils/platform';
 import { arePathsSame } from '../../common/externalDependencies';
-import { getPrioritizedEnvKinds } from './envKind';
-import { parseExeVersion } from './executable';
-import { mergeBuilds } from './pythonBuild';
-import { mergeDistros } from './pythonDistro';
-import { getEnvExecutable, mergeExecutables } from './executable';
+import {
+    copyEnvBase,
+    normalizeEnvBase,
+    validateEnvBase,
+} from './envBase';
+import {
+    getKindDisplayName,
+    getPrioritizedEnvKinds,
+} from './envKind';
+import {
+    getEnvExecutable,
+    mergeExecutables,
+    parseExeVersion,
+} from './executable';
+import {
+    copyBuild,
+    mergeBuilds,
+    normalizeBuild,
+    validateBuild,
+} from './pythonBuild';
+import {
+    copyDistro,
+    mergeDistros,
+    normalizeDistro,
+    validateDistro,
+} from './pythonDistro';
 import {
     areIdenticalVersion,
     areSimilarVersions,
+    getShortVersionString,
     isVersionEmpty,
+    parseVersion,
 } from './pythonVersion';
 
 import {
     PythonEnvBaseInfo,
     PythonEnvInfo,
     PythonEnvKind,
-    PythonReleaseLevel,
     PythonVersion,
 } from '.';
+
+const EMPTY_ENV: DeepReadonly<PythonEnvInfo> = {
+    // base
+    kind: PythonEnvKind.Unknown,
+    executable: {
+        filename: '',
+        sysPrefix: '',
+        ctime: -1,
+        mtime: -1,
+    },
+    name: '',
+    location: '',
+    // build
+    version: { major: -1, minor: -1, micro: -1, release: undefined, sysVersion: undefined }, // effictively EMPTY_VERSION
+    arch: Architecture.Unknown,
+    // top-level
+    distro: {
+        // meta
+        org: '',
+        defaultDisplayName: undefined,
+        // installed
+        version: undefined,
+        binDir: undefined
+    },
+    defaultDisplayName: undefined,
+    searchLocation: undefined,
+};
 
 /**
  * Create a new info object with all values empty.
  *
  * @param init - if provided, these values are applied to the new object
  */
-export function buildEnvInfo(init?: {
-    kind?: PythonEnvKind;
-    executable?: string;
-    location?: string;
-    version?: PythonVersion;
-    org?: string;
-    arch?: Architecture;
-    fileInfo?: {ctime:number, mtime:number}
-}): PythonEnvInfo {
-    const env = {
-        name: '',
-        location: '',
-        kind: PythonEnvKind.Unknown,
-        executable: {
-            filename: '',
-            sysPrefix: '',
-            ctime: init?.fileInfo?.ctime ?? -1,
-            mtime: init?.fileInfo?.mtime ?? -1,
-        },
-        searchLocation: undefined,
-        defaultDisplayName: undefined,
-        version: {
-            major: -1,
-            minor: -1,
-            micro: -1,
-            release: {
-                level: PythonReleaseLevel.Final,
-                serial: 0,
-            },
-        },
-        arch: init?.arch ?? Architecture.Unknown,
-        distro: {
-            org: init?.org ?? '',
-        },
-    };
-    if (init !== undefined) {
-        updateEnv(env, init);
+export function buildEnvInfo(
+    init?: {
+        kind?: PythonEnvKind;
+        executable?: string;
+        location?: string;
+        version?: PythonVersion | string;
+        org?: string;
+        arch?: Architecture;
+        fileInfo?: {ctime:number, mtime:number};
+    },
+): PythonEnvInfo {
+    const env = getEmptyEnv();
+    if (init === undefined) {
+        return env;
     }
+
+    if (init.fileInfo !== undefined) {
+        env.executable.ctime = init.fileInfo.ctime;
+        env.executable.mtime = init.fileInfo.mtime;
+    }
+    if (init.arch !== undefined) {
+        env.arch = init.arch;
+    }
+    if (init.org !== undefined) {
+        env.distro.org = init.org;
+    }
+
+    updateEnv(env, init);
+
     return env;
+}
+
+/**
+ * Build an "empty" info object.
+ */
+export function getEmptyEnv(): PythonEnvInfo {
+    return cloneDeep(EMPTY_ENV) as PythonEnvInfo;
 }
 
 /**
@@ -80,22 +129,38 @@ export function copyEnvInfo(
     updates?: {
         kind?: PythonEnvKind,
     },
+    strict = false,
 ): PythonEnvInfo {
-    // We don't care whether or not extra/hidden properties
-    // get preserved, so we do the easy thing here.
-    const copied = cloneDeep(env);
+    const copied = strict
+        ? copyStrict(env)
+        // We don't care whether or not extra/hidden properties
+        // get preserved, so we do the easy thing here.
+        : cloneDeep(env);
     if (updates !== undefined) {
         updateEnv(copied, updates);
     }
     return copied;
 }
 
-function updateEnv(env: PythonEnvInfo, updates: {
-    kind?: PythonEnvKind;
-    executable?: string;
-    location?: string;
-    version?: PythonVersion;
-}): void {
+function copyStrict(env: PythonEnvInfo): PythonEnvInfo {
+    // "embedded" parts
+    const base = copyEnvBase(env);
+    const build = copyBuild(env);
+    const copied: PythonEnvInfo = { ...env, ...base, ...build };
+    // top-level parts
+    copied.distro = copyDistro(copied.distro);
+    return copied;
+}
+
+function updateEnv(
+    env: PythonEnvInfo,
+    updates: {
+        kind?: PythonEnvKind;
+        executable?: string;
+        location?: string;
+        version?: PythonVersion | string;
+    },
+): void {
     if (updates.kind !== undefined) {
         env.kind = updates.kind;
     }
@@ -105,9 +170,78 @@ function updateEnv(env: PythonEnvInfo, updates: {
     if (updates.location !== undefined) {
         env.location = updates.location;
     }
-    if (updates.version !== undefined) {
-        env.version = updates.version;
+    if (updates.version === undefined) {
+        // We could fall back to parsing env.executable.filename...
+        // but we don't need that for now.
+    } else {
+        env.version = typeof updates.version === 'string'
+            ? parseVersion(updates.version)
+            : updates.version;
     }
+}
+
+/**
+ * Make a copy and set all the properties properly.
+ */
+export function normalizeEnv(info: PythonEnvInfo): PythonEnvInfo {
+    // "embedded" parts
+    const base = normalizeEnvBase(info);
+    const build = normalizeBuild(info);
+    const norm: PythonEnvInfo = { ...info, ...base, ...build };
+    // top-level parts
+    norm.distro = normalizeDistro(norm.distro);
+    if (!norm.defaultDisplayName) {
+        norm.defaultDisplayName = '';
+    }
+    // cross-cutting
+    if (isVersionEmpty(norm.version)) {
+        norm.version = parseExeVersion(norm.executable.filename, { ignoreErrors: true });
+    }
+    if (norm.defaultDisplayName === '') {
+        norm.defaultDisplayName = buildEnvDisplayName(norm);
+    }
+    return norm;
+}
+
+/**
+ * Fail if any properties are not set properly.
+ *
+ * Optional properties that are not set are ignored.
+ *
+ * This assumes that the info has already been normalized.
+ */
+export function validateEnv(info: PythonEnvInfo) {
+    // "embedded" parts
+    validateEnvBase(info);
+    validateBuild(info);
+    // top-level parts
+    validateDistro(info.distro);
+    // info.defaultDisplayName can be empty.
+}
+
+/**
+ * Convert the info to a user-facing representation.
+ */
+export function buildEnvDisplayName(env: PythonEnvInfo): string {
+    const displayNameParts: string[] = ['Python'];
+    const envSuffixParts: string[] = [];
+
+    if (!isVersionEmpty(env.version)) {
+        displayNameParts.push(getShortVersionString(env.version));
+    }
+    if (env.arch !== Architecture.Unknown) {
+        displayNameParts.push(getArchitectureDisplayName(env.arch));
+    }
+    if (env.name !== '') {
+        envSuffixParts.push(`'${env.name}'`);
+    }
+    const kindName = getKindDisplayName(env.kind);
+    if (kindName !== '') {
+        envSuffixParts.push(kindName);
+    }
+
+    const envSuffix = envSuffixParts.length === 0 ? '' : `(${envSuffixParts.join(': ')})`;
+    return `${displayNameParts.join(' ')} ${envSuffix}`.trim();
 }
 
 /**
