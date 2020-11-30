@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 import { cloneDeep } from 'lodash';
-import * as path from 'path';
-import { traceError } from '../../../common/logger';
 import {
     compareVersions as compareBasicVersions,
     EMPTY_VERSION,
@@ -19,16 +17,6 @@ import {
     PythonVersion,
     PythonVersionRelease,
 } from '.';
-
-export function getPythonVersionFromPath(exe:string): PythonVersion {
-    let version = getEmptyVersion();
-    try {
-        version = parseVersion(path.basename(exe));
-    } catch (ex) {
-        traceError(`Failed to parse version from path: ${exe}`, ex);
-    }
-    return version;
-}
 
 /**
  * Convert the given string into the corresponding Python version object.
