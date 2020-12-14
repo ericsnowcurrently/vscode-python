@@ -79,6 +79,7 @@ export const EMPTY_VERSION: RawBasicVersionInfo = {
         micro: undefined
     }
 };
+Object.freeze(EMPTY_VERSION);
 
 /**
  * Make a copy and set all the properties properly.
