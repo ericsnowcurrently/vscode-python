@@ -4,15 +4,7 @@
 import { cloneDeep } from 'lodash';
 import * as path from 'path';
 import { traceError } from '../../../common/logger';
-import {
-    compareVersions as compareBasicVersions,
-    EMPTY_VERSION,
-    getVersionString as getBasicVersionString,
-    isVersionInfoEmpty,
-    normalizeVersionInfo,
-    parseBasicVersionInfo,
-    validateVersionInfo,
-} from '../../../common/utils/version';
+import * as basic from '../../../common/utils/version';
 
 import {
     PythonReleaseLevel,
@@ -107,7 +99,7 @@ export function parseRelease(text: string): [PythonVersionRelease | undefined, s
 export function parseBasicVersion(versionStr: string): [PythonVersion, string] {
     // We set a prefix (which will be ignored) to make sure "plain"
     // versions are fully parsed.
-    const parsed = parseBasicVersionInfo<PythonVersion>(`ignored-${versionStr}`);
+    const parsed = basic.parseBasicVersionInfo<PythonVersion>(`ignored-${versionStr}`);
     if (!parsed) {
         if (versionStr === '') {
             return [getEmptyVersion(), ''];
@@ -135,7 +127,7 @@ export function parseBasicVersion(versionStr: string): [PythonVersion, string] {
  * Get a new version object with all properties "zeroed out".
  */
 export function getEmptyVersion(): PythonVersion {
-    return cloneDeep(EMPTY_VERSION);
+    return cloneDeep(basic.EMPTY_VERSION);
 }
 
 /**
@@ -144,7 +136,7 @@ export function getEmptyVersion(): PythonVersion {
 export function isVersionEmpty(version: PythonVersion): boolean {
     // We really only care the `version.major` is -1.  However, using
     // generic util is better in the long run.
-    return isVersionInfoEmpty(version);
+    return basic.isVersionInfoEmpty(version);
 }
 
 /**
@@ -158,7 +150,7 @@ export function copyVersion(info: PythonVersion): PythonVersion {
  * Make a copy with all appropriate properties set (and normalized).
  */
 export function normalizeVersion(info: PythonVersion): PythonVersion {
-    const norm = normalizeVersionInfo(info);
+    const norm = basic.normalizeVersionInfo(info);
     if (info.release !== undefined) {
         norm.release = normalizeRelease(info.release);
     }
@@ -203,7 +195,7 @@ function normalizeRelease(info: PythonVersionRelease): PythonVersionRelease {
  * This assumes that the info has already been normalized.
  */
 export function validateVersion(info: PythonVersion): void {
-    validateVersionInfo(info);
+    basic.validateVersionInfo(info);
     if (info.release !== undefined) {
         validateRelease(info.release);
     }
@@ -238,7 +230,7 @@ function validateRelease(info: PythonVersionRelease): void {
  * Convert the info to a simple string.
  */
 export function getShortVersionString(ver: PythonVersion): string {
-    let verStr = getBasicVersionString(ver);
+    let verStr = basic.getVersionString(ver);
     if (ver.release === undefined) {
         return verStr;
     }
@@ -281,10 +273,10 @@ export function areSimilarVersions(left: PythonVersion, right: PythonVersion): b
     if (left.major === 2 && right.major === 2) {
         // We are going to assume that if the major version is 2 then the version is 2.7
         if (left.minor === -1) {
-            [result, prop] = compareBasicVersions({ ...left, minor: 7 }, right);
+            [result, prop] = basic.compareVersions({ ...left, minor: 7 }, right);
         }
         if (right.minor === -1) {
-            [result, prop] = compareBasicVersions(left, { ...right, minor: 7 });
+            [result, prop] = basic.compareVersions(left, { ...right, minor: 7 });
         }
     }
     // tslint:disable:no-any
@@ -306,7 +298,7 @@ export function compareVersions(left: PythonVersion, right: PythonVersion): numb
 }
 
 function compareVersionsRaw(left: PythonVersion, right: PythonVersion): [number, string] {
-    const [result, prop] = compareBasicVersions(left, right);
+    const [result, prop] = basic.compareVersions(left, right);
     if (result !== 0) {
         return [result, prop];
     }
