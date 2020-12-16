@@ -25,7 +25,7 @@ import { PyenvLocator } from './discovery/locators/services/pyenvLocator';
 import { WindowsRegistryLocator } from './discovery/locators/services/windowsRegistryLocator';
 import { WindowsStoreLocator } from './discovery/locators/services/windowsStoreLocator';
 import { EnvironmentInfoService } from './info/environmentInfoService';
-import { registerLegacyDiscoveryForIOC, registerNewDiscoveryForIOC } from './legacyIOC';
+import { isComponentEnabled, registerLegacyDiscoveryForIOC, registerNewDiscoveryForIOC } from './legacyIOC';
 import { EnvironmentsSecurity, IEnvironmentsSecurity } from './security';
 
 /**
@@ -59,10 +59,12 @@ export function initialize(ext: ExtensionState): PythonEnvironments {
  * Make use of the component (e.g. register with VS Code).
  */
 export async function activate(api: PythonEnvironments): Promise<ActivationResult> {
-    // Force an initial background refresh of the environments.
-    getEnvs(api.iterEnvs())
-        // Don't wait for it to finish.
-        .ignoreErrors();
+    if (await isComponentEnabled()) {
+        // Force an initial background refresh of the environments.
+        getEnvs(api.iterEnvs())
+            // Don't wait for it to finish.
+            .ignoreErrors();
+    }
 
     // Registration with VS Code will go here.
 
