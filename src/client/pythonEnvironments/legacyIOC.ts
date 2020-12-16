@@ -130,6 +130,14 @@ function convertEnvInfo(info: PythonEnvInfo): PythonEnvironment {
     return env;
 }
 
+export async function isComponentEnabled(): Promise<boolean> {
+    const results = await Promise.all([
+        inExperiment(DiscoveryVariants.discoverWithFileWatching),
+        inExperiment(DiscoveryVariants.discoveryWithoutFileWatching),
+    ]);
+    return results.includes(true);
+}
+
 export interface IPythonEnvironments extends ILocator {}
 
 @injectable()
@@ -149,12 +157,7 @@ class ComponentAdapter implements IComponentAdapter, IExtensionSingleActivationS
     ) {}
 
     public async activate(): Promise<void> {
-        this.enabled = (
-            await Promise.all([
-                inExperiment(DiscoveryVariants.discoverWithFileWatching),
-                inExperiment(DiscoveryVariants.discoveryWithoutFileWatching),
-            ])
-        ).includes(true);
+        this.enabled = await isComponentEnabled();
         this.disposables.push(
             this.api.onChanged((e) => {
                 const query = {
